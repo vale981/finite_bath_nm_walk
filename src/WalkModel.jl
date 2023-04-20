@@ -74,7 +74,7 @@ function hamiltonian(k::Real, params::ModelParameters)::Matrix{<:Number}
     H_bath = diagm(0 => params.ε)
 
     H_system_bath = [zeros(num_bath_modes(params))'
-        (abs(v(k, params)) .* params.g)']
+        (params.g)']
 
     H = [(V+H_AB) H_system_bath
         H_system_bath' H_bath]
