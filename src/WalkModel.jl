@@ -3,6 +3,7 @@
 using Parameters
 import LinearAlgebra: diagm, eigen
 import DifferentialEquations as de
+import Cubature: hquadrature_v
 
 """The parameters required to simulate the model, agnostic of how they
 are arrived at."""
@@ -42,14 +43,14 @@ struct OhmicSpectralDensity
     α::Real
 end
 
-(J::OhmicSpectralDensity)(ε::Real) = ε <= J.Δ ? J.J * ε^J.α : 0
+(J::OhmicSpectralDensity)(ε::Real) = ε <= J.Δ ? J.J * ε^J.α * (J.α + 1)/J.Δ^(J.α+1) : 0
 
 integral(J::OhmicSpectralDensity) = OhmicSpectralDensity(J.Δ, J.J / (J.α + 1), J.α + 1)
 
 
 """The winding phase of the hopping amplitude.
    The arguments are as in [`v`](@ref)."""
-Φ(args...)::Real = arg(v(args...))
+ϕ(args...)::Real = angle(v(args...))
 
 """The derivative of winding phase of the hopping amplitude.
    The arguments are as in [`v`](@ref)."""
@@ -73,7 +74,7 @@ function hamiltonian(k::Real, params::ModelParameters)::Matrix{<:Number}
     H_bath = diagm(0 => params.ε)
 
     H_system_bath = [zeros(num_bath_modes(params))'
-        params.g']
+        (abs(v(k, params)) .* params.g)']
 
     H = [(V+H_AB) H_system_bath
         H_system_bath' H_bath]
@@ -81,13 +82,6 @@ function hamiltonian(k::Real, params::ModelParameters)::Matrix{<:Number}
     H
 end
 
-
-"""The ``k`` component of a state localized at the `m_0`th `A` site for a chain length N."""
-function localized_state(k::Real, m_0::Integer, N::Integer)
-    @assert N > m_0
-
-    [(exp(-1im * 2π / N * n * m_0) / sqrt(N)) 0]
-end
 
 
 solution(k::Real, params::ModelParameters, m_0::Integer=0) = solution(k, hamiltonian(k, params), m_0)
@@ -98,7 +92,7 @@ function solution(k::Real, H::Matrix{<:Complex}, m_0::Integer=0)
     ψ_0 = [exp(-1im * k * m_0); 0; zeros(num_bath_modes(H))]
     coefficients = vectors' * ψ_0
 
-    WalkSolution(coefficients' .* vectors, energies)
+    WalkSolution((coefficients' .* vectors), energies)
 end
 
 """A structure holding the information for the dynamic solution of the
@@ -113,11 +107,13 @@ end
 
 The solution at time ``t``."""
 function (sol::WalkSolution)(t::Real)
-    @inbounds sol.vectors * (exp.(-1im * sol.energies * t))
+    @inbounds sol.vectors * (exp.(complex.(0,-sol.energies * t)))
 end
 
 """The ``\rho_{\bar{A}}(k, t)`` at time ``t`` for the specific solution `sol`."""
 non_a_weight(t::Real, sol::WalkSolution)::Real = sol(t)[2:end] .|> abs2 |> sum
+a_weight(t::Real, sol::WalkSolution)::Real = sol(t)[begin] |> abs2
+#non_a_weight(t::Real, sol::WalkSolution)::Real = 1 - abs2(sol(t)[1]) / (2π)
 
 
 """Return `N` energies distributed according to ``exp(-ε/ω_c)`` in the
@@ -133,13 +129,27 @@ function exponential_energy_distribution(J::OhmicSpectralDensity, N::Integer)
     ε, sqrt.(g)
 end
 
+function linear_energy_distribution(J::OhmicSpectralDensity, N::Integer)
+    xk = collect(LinRange(0, J.Δ, N + 1))
+    ε = J.Δ * ((2 * collect(1:N) .- 1) / (2 * N))
+
+    J_int = integral(J)
+    xk[end] = min(xk[end], J_int.Δ)
+    g = 1 / π * ((J_int.(xk[2:end]) - J_int.(xk[1:end-1])))
+    ε, sqrt.(g)
+end
+
+
 
 function mean_displacement(t::Real, params::ModelParameters, N::Integer, m_0::Integer=0)
-    function intengrand(_, _, k)
-        sol = solution(k, params, m_0)
-        dϕ(k, params) * non_a_weight(t, sol)
+    function integrand(ks, v)
+        Threads.@threads for i = 1:length(ks)
+            k = ks[i]
+            sol = solution(k, params, m_0)
+            @inbounds v[i] = dϕ(k, params) * non_a_weight(t, sol)
+        end
     end
 
-    prob = de.ODEProblem(intengrand, 0, (0, π))
-    m = de.solve(prob).u[end] / π
+    m, _ = hquadrature_v(integrand, -π, π, reltol=1e-2, abstol=1e-2)
+    m / (2π)
 end
