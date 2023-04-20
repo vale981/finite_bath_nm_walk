@@ -1,0 +1,63 @@
+#+PROPERTY: header-args :session finite_bath :kernel julia-1.8 :pandoc yes :async yes
+
+#+begin_src jupyter-julia
+  using DrWatson
+  using Revise
+  using Plots
+  using LinearAlgebra
+  @quickactivate "discrete_walk"
+  Revise.includet(srcdir("WalkModel.jl"))
+#+end_src
+
+#+RESULTS:
+: [32m[1m  Activating[22m[39m project at `~/Documents/org/roam/data/c4/5097d2-2599-426d-82db-6ecfb5207151`
+
+
+The behavior is overly sensitive on the coupling strength.
+#+begin_src jupyter-julia
+  N = 100
+  p = plot(title=raw"$\rho_A(k=0,t)$")
+  for α in [0,  .5, 1.1, 1.5, 2]
+      vv = 1
+      ω = 10 * vv
+      ε, g = linear_energy_distribution(OhmicSpectralDensity((vv*5), .01*vv^2, α), N)
+      g /= g[begin]
+      g *= 3 * .01 * ω / vv
+      params = ModelParameters(v=vv, u=2, ω=ω, ε=ε, g=g)
+      sol = solution(0, params)
+      plot!(0:.1:200, t->(a_weight(t, sol)), label="α=$(α)")
+  end
+  p
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/f98bd19db76783ea467bbfe142f54093bd8f4b68.svg]]
+
+For small detuning it's completely bunged up.
+#+begin_src jupyter-julia
+  N = 1000
+  p = plot(title=raw"$\rho_A(k=0,t)$")
+  for α in [0, 1.5]
+      ε, g = exponential_energy_distribution(OhmicSpectralDensity(5, .01, α), N)
+      params = ModelParameters(v=1, u=2, ω=5, ε=ε, g=g)
+      sol = solution(0, params)
+      plot!(t->(a_weight(t, sol)), 0, 50, label="α=$(α)")
+  end
+  p
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/6ef846b22b25070d78875f194b818e26c950a3eb.svg]]
+
+#+begin_src jupyter-julia
+ mean_displacement(200, params, 0,0)
+#+end_src
+
+#+RESULTS:
+: 0.02090236442329212
+
+#+begin_src jupyter-julia
+#plot(80:1:100, t-> mean_displacement(t, params, 0,0))
+#+END_src
+
+#+RESULTS:
