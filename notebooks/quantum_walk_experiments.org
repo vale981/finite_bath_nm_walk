@@ -14,30 +14,30 @@
 #+end_src
 
 #+RESULTS:
+: [32m[1m  Activating[22m[39m project at `~/Documents/org/roam/data/c4/5097d2-2599-426d-82db-6ecfb5207151`
 
 
 * Sampling
 #+begin_src jupyter-julia
-  sd = OhmicSpectralDensity(10, 1, 2)
-  plot(e->sd(e), 0, 11)
+  sd = OhmicSpectralDensity(1, 1, 2)
+  plot(e-> (OhmicSpectralDensityIntegral(sd)(e)), 0, 10)
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/73e6c926906ad320cb924643fec0258df9cb2f46.svg]]
-
+[[file:./.ob-jupyter/7f60d06fde6f16a58b425f66b44ac2026a6a5468.svg]]
 
 #+begin_src jupyter-julia
-  begin
-      ε, g = exponential_energy_distribution(sd, 1000, 1e-3)
-      plot(e->sd(e), 0, 11, label="J")
-      scatter!(ε, sd.(ε), label="J(ε)")
-      scatter!(ε, g.^2, label="g")
-      ε[1] - ε[2]
-  end
+    begin
+        ε, g = exponential_energy_distribution(sd, 10)
+        plot(e->sd(e), 0, 20, label="J")
+        scatter!(ε, sd.(ε), label="J(ε)")
+        scatter!(ε, g.^2, label="g")
+        #ε[1] - ε[2]
+    end
 #+end_src
 
 #+RESULTS:
-: 1.2534278490447092e-5
+[[file:./.ob-jupyter/ebe7c6e0fde4a0ac19399281b4b5521cef106a1b.svg]]
 
 #+begin_src jupyter-julia
   begin
@@ -49,18 +49,17 @@
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/b3660f082a6b56b33d2e2bf8265afffbab8691b6.svg]]
+[[file:./.ob-jupyter/8a5cef558d2e8e984283813687a63076999d125a.svg]]
 
 * General Solution
-
 The behavior is overly sensitive on the coupling strength.
 #+begin_src jupyter-julia
-  N = 200
+  N = 100
   p = plot(title=raw"$\rho_A(k=0,t)$")
   for α in [0,  .5, 1.5, 2, 3]
       vv = 1
       ω = 20 * vv
-      ε, g = exponential_energy_distribution(OhmicSpectralDensity((vv*5), 1*ω/3, α), N, 1e-4)
+      ε, g = exponential_energy_distribution(OhmicSpectralDensity(1, 3*ω/3, α), N)
 
       params = ModelParameters(v=vv, u=2, ω=ω, ε=ε, g=g)
       sol = solution(0, params)
@@ -73,14 +72,14 @@ The behavior is overly sensitive on the coupling strength.
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/747aa3df0d7b3d1f4dc5cfa83c5085cb3132e6ef.svg]]
+[[file:./.ob-jupyter/a73ff806187b5c60b2ebdb64ed915efbacf7146c.svg]]
 
 For small detuning it's completely bunged up.
 #+begin_src jupyter-julia
   N = 100
   p = plot(title=raw"$\rho_A(k=0,t)$")
   for α in [0, 1.5]
-      ε, g = exponential_energy_distribution(OhmicSpectralDensity(5, 2, α), N, 1e-4)
+      ε, g = exponential_energy_distribution(OhmicSpectralDensity(3, 2, α), N, 1e-4)
       params = ModelParameters(v=1, u=2, ω=1, ε=ε, g=g)
       sol = solution(0, params)
       @show mean_displacement(200, params)
@@ -91,37 +90,37 @@ For small detuning it's completely bunged up.
 
 #+RESULTS:
 :RESULTS:
-: mean_displacement(200, params) = 0.9886628415372419
-: mean_displacement(200, params) = 0.9575043120141997
-[[file:./.ob-jupyter/3fd4652e407663eb4c65a9c645953606f19a8474.svg]]
+: mean_displacement(200, params) = 0.9597379957282997
+: mean_displacement(200, params) = 0.9690446830404802
+[[file:./.ob-jupyter/21e5abd3d6f73f64b7a29f67a09be6a0d81d85e7.svg]]
 :END:
 
 
 * With Schrieffer-Wolff
 #+begin_src jupyter-julia
   vv = 1
-  α = .1
+  α = 2
   N = 1000
   k = 0
-  sd = OhmicSpectralDensity((5vv), .01, α)
+  sd = OhmicSpectralDensity(1vv, .01, α)
   ε, g = exponential_energy_distribution(sd, N, 1e-3/2)
-  ε .-= . 45
+  ε .-= .18
   params = ModelParameters(v=vv, u=0, ε=ε, g=g, sw_approximation=true)
   sol = solution(k, params)
-  plot(t->(a_weight(t, sol)), ylim=(0, 1), 0, 1000)
+  plot(t->(a_weight(t, sol)), ylim=(0, 1), 0, 2000)
   #hline!([1/(1+1.724*abs2(v(k,params))*sd.J*sd.Δ^(sd.α-1)/(sd.α-1))])
   #1/(ε[2]- ε[1])
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/65751b319bb167a5437d37f655532ffa481b9ec7.svg]]
+[[file:./.ob-jupyter/544fd781249331b49033cf21da05f3aa3b1f68db.svg]]
 
 #+begin_src jupyter-python
   time_averaged_displacement((500, 510), params, 0)
 #+end_src
 
 #+RESULTS:
-: 0.8709618290993602
+: 3da88130-e503-4d86-9b3b-c6070b176d8d
 
 
 * Analytic Result for Weak Coupling

@@ -8,6 +8,7 @@ export solution
 export Σ_A
 export analytic_time_averaged_displacement
 export OhmicSpectralDensity
+export OhmicSpectralDensityIntegral
 export linear_energy_distribution
 export exponential_energy_distribution
 export a_weight
@@ -17,9 +18,9 @@ export time_averaged_displacement
 
 using Parameters
 import LinearAlgebra: diagm, eigen
-import DifferentialEquations as de
 import Cubature: hquadrature, hquadrature_v
 import Statistics: mean
+import SpecialFunctions: gamma
 
 """The parameters required to simulate the model, agnostic of how they
 are arrived at."""
@@ -58,15 +59,23 @@ v(k::Real, v::Real, u::Real)::Complex = v + u * v * exp(complex(0, k))
 v(k::Real, params::ModelParameters)::Complex = v(k, params.v, params.u)
 
 struct OhmicSpectralDensity
-    Δ::Real
+    ω_c::Real
     J::Real
     α::Real
 end
 
-(J::OhmicSpectralDensity)(ε::Real) = ε <= J.Δ ? J.J * ε^J.α : 0
+(J::OhmicSpectralDensity)(ε::Real) = ε^J.α * J.J * exp(-ε/J.ω_c)
 
-integral(J::OhmicSpectralDensity) = OhmicSpectralDensity(J.Δ, J.J / (J.α + 1), J.α + 1)
 
+struct OhmicSpectralDensityIntegral
+    ω_c::Real
+    J::Real
+    α::Real
+end
+
+OhmicSpectralDensityIntegral(J::OhmicSpectralDensity) = OhmicSpectralDensityIntegral(J.ω_c, J.J, J.α)
+
+(J::OhmicSpectralDensityIntegral)(ε::Real) = J.J * J.ω_c ^ (J.α  + 0) * (gamma(J.α+1) - gamma(1 + J.α, ε/J.ω_c))
 
 """The winding phase of the hopping amplitude.
    The arguments are as in [`v`](@ref)."""
@@ -74,8 +83,8 @@ integral(J::OhmicSpectralDensity) = OhmicSpectralDensity(J.Δ, J.J / (J.α + 1),
 
 """The derivative of winding phase of the hopping amplitude.
    The arguments are as in [`v`](@ref)."""
-dϕ(k::Real, v::Real, u::Real)::Real = u * (u + cos(k)) / (u^2 + 1 + 2 * u * cos(k))
-dϕ(k::Real, params::ModelParameters)::Real = dϕ(k, params.v, params.u)
+dϕ(k::Real, u::Real)::Real = u * (u + cos(k)) / (u^2 + 1 + 2 * u * cos(k))
+dϕ(k::Real, params::ModelParameters)::Real = dϕ(k, params.u)
 
 """
   hamiltonian(k, params)
@@ -154,7 +163,7 @@ non_a_weight(t::Real, sol::WalkSolution)::Real = (1 - abs2(sol(t)[1]) / (2π))
 """Return `N` energies distributed according to ``exp(-ε/ω_c)`` in the
    interval `(0, J.Δ)`."""
 function exponential_energy_distribution(J::OhmicSpectralDensity, N::Integer, ε_0::Real =0)
-    ω_c = -J.Δ / log(1 / (2N))
+    ω_c = J.ω_c
     xk = -ω_c * log.(1 .- collect(0:N) / (N))
     ε = -ω_c * log.(1 .- (2 * collect(1:N) .- 1) / (2 * N))
 
@@ -162,23 +171,21 @@ function exponential_energy_distribution(J::OhmicSpectralDensity, N::Integer, ε
         ε[1] = ε_0
     end
 
-    J_int = integral(J)
-    xk[end] = min(xk[end], J_int.Δ)
+    J_int = OhmicSpectralDensityIntegral(J)
     g = ((J_int.(xk[2:end]) - J_int.(xk[1:end-1])))
     ε, sqrt.(g)
 end
 
 
 function linear_energy_distribution(J::OhmicSpectralDensity, N::Integer, ε_0::Real =0)
-    xk = collect(LinRange(0, J.Δ, N + 1))
-    ε = J.Δ * ((2 * collect(1:N) .- 1) / (2 * N))
+    xk = collect(LinRange(0, J.ω_c, N + 1))
+    ε = J.ω_c * ((2 * collect(1:N) .- 1) / (2 * N))
 
     if ε_0 > 0
         ε[1] = ε_0
     end
 
-    J_int = integral(J)
-    xk[end] = min(xk[end], J_int.Δ)
+    J_int = OhmicSpectralDensityIntegral(J)
     g = ((J_int.(xk[2:end]) - J_int.(xk[1:end-1])))
 
     ε, sqrt.(g)
