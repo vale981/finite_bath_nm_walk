@@ -6,58 +6,181 @@
   using Plots
   using LinearAlgebra
   @quickactivate "discrete_walk"
+
   Revise.includet(srcdir("WalkModel.jl"))
+  using .WalkModel
+  Revise.includet(srcdir("Utilities.jl"))
+  using .Utilities
 #+end_src
 
 #+RESULTS:
-: [32m[1m  Activating[22m[39m project at `~/Documents/org/roam/data/c4/5097d2-2599-426d-82db-6ecfb5207151`
 
+
+* Sampling
+#+begin_src jupyter-julia
+  sd = OhmicSpectralDensity(10, 1, 2)
+  plot(e->sd(e), 0, 11)
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/73e6c926906ad320cb924643fec0258df9cb2f46.svg]]
+
+
+#+begin_src jupyter-julia
+  begin
+      ε, g = exponential_energy_distribution(sd, 1000, 1e-3)
+      plot(e->sd(e), 0, 11, label="J")
+      scatter!(ε, sd.(ε), label="J(ε)")
+      scatter!(ε, g.^2, label="g")
+      ε[1] - ε[2]
+  end
+#+end_src
+
+#+RESULTS:
+: 1.2534278490447092e-5
+
+#+begin_src jupyter-julia
+  begin
+      ε, g = linear_energy_distribution(sd, 100)
+      plot(e->sd(e), 0, 11, label="J")
+      scatter!(ε, sd.(ε), label="J(ε)")
+      scatter!(ε, g.^2, label="g")
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/b3660f082a6b56b33d2e2bf8265afffbab8691b6.svg]]
+
+* General Solution
 
 The behavior is overly sensitive on the coupling strength.
 #+begin_src jupyter-julia
-  N = 100
+  N = 200
   p = plot(title=raw"$\rho_A(k=0,t)$")
-  for α in [0,  .5, 1.1, 1.5, 2]
+  for α in [0,  .5, 1.5, 2, 3]
       vv = 1
-      ω = 10 * vv
-      ε, g = linear_energy_distribution(OhmicSpectralDensity((vv*5), .01*vv^2, α), N)
-      g /= g[begin]
-      g *= 3 * .01 * ω / vv
+      ω = 20 * vv
+      ε, g = exponential_energy_distribution(OhmicSpectralDensity((vv*5), 1*ω/3, α), N, 1e-4)
+
       params = ModelParameters(v=vv, u=2, ω=ω, ε=ε, g=g)
       sol = solution(0, params)
-      plot!(0:.1:200, t->(a_weight(t, sol)), label="α=$(α)")
+      #@show mean_displacement(500, params)
+
+
+      plot!(0:1:500, t->(a_weight(t, sol)), label="α=$(α)")
   end
   p
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/f98bd19db76783ea467bbfe142f54093bd8f4b68.svg]]
+[[file:./.ob-jupyter/747aa3df0d7b3d1f4dc5cfa83c5085cb3132e6ef.svg]]
 
 For small detuning it's completely bunged up.
 #+begin_src jupyter-julia
-  N = 1000
+  N = 100
   p = plot(title=raw"$\rho_A(k=0,t)$")
   for α in [0, 1.5]
-      ε, g = exponential_energy_distribution(OhmicSpectralDensity(5, .01, α), N)
-      params = ModelParameters(v=1, u=2, ω=5, ε=ε, g=g)
+      ε, g = exponential_energy_distribution(OhmicSpectralDensity(5, 2, α), N, 1e-4)
+      params = ModelParameters(v=1, u=2, ω=1, ε=ε, g=g)
       sol = solution(0, params)
+      @show mean_displacement(200, params)
       plot!(t->(a_weight(t, sol)), 0, 50, label="α=$(α)")
   end
   p
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/6ef846b22b25070d78875f194b818e26c950a3eb.svg]]
+:RESULTS:
+: mean_displacement(200, params) = 0.9886628415372419
+: mean_displacement(200, params) = 0.9575043120141997
+[[file:./.ob-jupyter/3fd4652e407663eb4c65a9c645953606f19a8474.svg]]
+:END:
 
+
+* With Schrieffer-Wolff
 #+begin_src jupyter-julia
- mean_displacement(200, params, 0,0)
+  vv = 1
+  α = .1
+  N = 1000
+  k = 0
+  sd = OhmicSpectralDensity((5vv), .01, α)
+  ε, g = exponential_energy_distribution(sd, N, 1e-3/2)
+  ε .-= . 45
+  params = ModelParameters(v=vv, u=0, ε=ε, g=g, sw_approximation=true)
+  sol = solution(k, params)
+  plot(t->(a_weight(t, sol)), ylim=(0, 1), 0, 1000)
+  #hline!([1/(1+1.724*abs2(v(k,params))*sd.J*sd.Δ^(sd.α-1)/(sd.α-1))])
+  #1/(ε[2]- ε[1])
 #+end_src
 
 #+RESULTS:
-: 0.02090236442329212
+[[file:./.ob-jupyter/65751b319bb167a5437d37f655532ffa481b9ec7.svg]]
 
-#+begin_src jupyter-julia
-#plot(80:1:100, t-> mean_displacement(t, params, 0,0))
-#+END_src
+#+begin_src jupyter-python
+  time_averaged_displacement((500, 510), params, 0)
+#+end_src
 
 #+RESULTS:
+: 0.8709618290993602
+
+
+* Analytic Result for Weak Coupling
+Here the analytic result from [cite:@Ricottone2020 p. 5 "(30)"]
+\( \begin{aligned} \rho_{A}(k)= & \lim _{s \rightarrow 0} s
+\tilde{\rho}_{A}(k, s)=\frac{1}{2 \pi} \frac{1}{1+i
+\Sigma_{A}^{\prime}(k)}, \\ & \Sigma_{A}^{\prime}(k)=\lim _{s
+\rightarrow 0} \frac{\tilde{\Sigma}_{A}(k, s)}{s} .\end{aligned} \)
+is implemented numerically.
+
+We find that if we shift the sampled energies so that the first energy
+is very close to zero, the phase diagram pops out nicely.
+#+begin_src jupyter-julia
+  plot_analytic_phase_diagram(50, num_bath_modes=100000, ε_min=1e-5, bath_discretization=linear_energy_distribution)
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/3a50a39de5f1c304b38a0f837798c339016d2c53.svg]]
+
+We can also look at more bath modes
+#+begin_src jupyter-julia
+  plot_analytic_phase_diagram(50, num_bath_modes=1000, ε_min=1e-3)
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/f860fc7d4a93a20c83f7b29f56627db5a8669da2.svg]]
+
+Little changes, but the transition gets crisper.
+
+With less modes, it becomes more noticeable that the killing of the
+phase transition washes out. (no matter the fudge factor)
+#+begin_src jupyter-julia
+  plot_analytic_phase_diagram(50, num_bath_modes=30, ε_min=1e-2/2)
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/c04e20b3e4b62488b28eaf72bfb8cb1e4b9a8a60.svg]]
+Doing the same with the linear distribution gives worse results.
+#+begin_src jupyter-julia
+  plot_analytic_phase_diagram(50, num_bath_modes=30, ε_min=1e-2/2, bath_discretization=linear_energy_distribution)
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/f20bfaeb41cd7adce636db947defeb150e188ac0.svg]]
+
+
+If I change the "fudge factor", we can get very different results.
+#+begin_src jupyter-julia
+  begin
+      p = []
+      N = 8
+      for δ in [0; 10 .^ (collect(LinRange(-5,-1, N-1)))]
+          current_plot =  plot_analytic_phase_diagram(50, num_bath_modes=300, ε_min=δ)
+          current_plot[1][:title] = δ
+          push!(p, current_plot)
+      end
+      plot(p..., layout=(N,1), size=default(:size) .* (2, 2N))
+  end
+#+end_src
+
+#+RESULTS:
+: 97990142-5721-446a-ab2a-4f8ce8c0c6ac
