@@ -6,8 +6,8 @@
 /data
 /videos
 /plots
-/notebooks
 /_research
+.ob-jupyter
 
 ################################################################################
 #                                    Julia                                     #

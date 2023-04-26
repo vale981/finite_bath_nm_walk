@@ -6,7 +6,13 @@ export v
 export hamiltonian
 export solution
 export Σ_A
+export ρ_A
+export ρ_A_mean
+export ρ_A_mean_born
+export dϕ
 export analytic_time_averaged_displacement
+export construct_residue_poly
+export residues_poly
 export OhmicSpectralDensity
 export OhmicSpectralDensityIntegral
 export linear_energy_distribution
@@ -15,12 +21,18 @@ export a_weight
 export non_a_weight
 export mean_displacement
 export time_averaged_displacement
+export integrand_born
+export integrand_diagonalization
+export integrand_residue
+export time_scale
 
 using Parameters
 import LinearAlgebra: diagm, eigen
 import Cubature: hquadrature, hquadrature_v
 import Statistics: mean
 import SpecialFunctions: gamma
+import Polynomials: Polynomial, fromroots, coeffs
+import PolynomialRoots: roots
 
 """The parameters required to simulate the model, agnostic of how they
 are arrived at."""
@@ -64,7 +76,7 @@ struct OhmicSpectralDensity
     α::Real
 end
 
-(J::OhmicSpectralDensity)(ε::Real) = ε^J.α * J.J * exp(-ε/J.ω_c)
+(J::OhmicSpectralDensity)(ε::Real) = ε^J.α * J.J * exp(-ε / J.ω_c) / (gamma(1 + J.α) * J.ω_c^(1+J.α))
 
 
 struct OhmicSpectralDensityIntegral
@@ -75,7 +87,7 @@ end
 
 OhmicSpectralDensityIntegral(J::OhmicSpectralDensity) = OhmicSpectralDensityIntegral(J.ω_c, J.J, J.α)
 
-(J::OhmicSpectralDensityIntegral)(ε::Real) = J.J * J.ω_c ^ (J.α  + 0) * (gamma(J.α+1) - gamma(1 + J.α, ε/J.ω_c))
+(J::OhmicSpectralDensityIntegral)(ε::Real) = J.J * J.ω_c^(J.α + 0) * (gamma(J.α + 1) - gamma(1 + J.α, ε / J.ω_c)) / (gamma(1 + J.α) * J.ω_c^(1+J.α))
 
 """The winding phase of the hopping amplitude.
    The arguments are as in [`v`](@ref)."""
@@ -122,7 +134,6 @@ function solution(k::Real, params::ModelParameters, m_0::Integer=0)
     energies, vectors = eigen(H)
     energies = real.(energies)
 
-
     ψ_0 = if params.sw_approximation
         [exp(-1im * k * m_0); zeros(num_bath_modes(params))]
     else
@@ -162,7 +173,7 @@ non_a_weight(t::Real, sol::WalkSolution)::Real = (1 - abs2(sol(t)[1]) / (2π))
 
 """Return `N` energies distributed according to ``exp(-ε/ω_c)`` in the
    interval `(0, J.Δ)`."""
-function exponential_energy_distribution(J::OhmicSpectralDensity, N::Integer, ε_0::Real =0)
+function exponential_energy_distribution(J::OhmicSpectralDensity, N::Integer, ε_0::Real=0)
     ω_c = J.ω_c
     xk = -ω_c * log.(1 .- collect(0:N) / (N))
     ε = -ω_c * log.(1 .- (2 * collect(1:N) .- 1) / (2 * N))
@@ -173,11 +184,15 @@ function exponential_energy_distribution(J::OhmicSpectralDensity, N::Integer, ε
 
     J_int = OhmicSpectralDensityIntegral(J)
     g = ((J_int.(xk[2:end]) - J_int.(xk[1:end-1])))
-    ε, sqrt.(g)
+
+    g /= sum(abs.(g))
+    g *= J.J
+
+    ε, (sqrt.(g))
 end
 
 
-function linear_energy_distribution(J::OhmicSpectralDensity, N::Integer, ε_0::Real =0)
+function linear_energy_distribution(J::OhmicSpectralDensity, N::Integer, ε_0::Real=0)
     xk = collect(LinRange(0, J.ω_c, N + 1))
     ε = J.ω_c * ((2 * collect(1:N) .- 1) / (2 * N))
 
@@ -187,6 +202,9 @@ function linear_energy_distribution(J::OhmicSpectralDensity, N::Integer, ε_0::R
 
     J_int = OhmicSpectralDensityIntegral(J)
     g = ((J_int.(xk[2:end]) - J_int.(xk[1:end-1])))
+
+    g /= sum(abs.(g))
+    g *= J.J
 
     ε, sqrt.(g)
 end
@@ -233,18 +251,160 @@ function limit(f::Function, x0::Real, x1::Real, δ::Real=1e-2)
     next
 end
 
-Σ_A(k::Real, s::Real, params::ModelParameters) = 2 * sum((abs2(v(k, params)) .* (params.g) .^ 2) .* s ./ (s^2 .+ params.ε .^ 2)) / s
-Σ_A(k::Real, params::ModelParameters, δ::Real=1e-8) = limit(t -> Σ_A(k, t, params), 0, 1e-3, δ)
+Σ_A(k::Real, s::Real, params::ModelParameters) = 2 * sum((abs2(v(k, params)) .* ((params.g) .^ 2)) ./ (s^2 .+ params.ε .^ 2))
+Σ_A(k::Real, params::ModelParameters) = Σ_A(k, 0, params)
 
-ρ_A(k::Real, params::ModelParameters, δ::Real=1e-8) = 1/2π * 1/(1+Σ_A(k, params, δ))
+ρ_A(k::Real, params::ModelParameters) = 1 / 2π * 1 / (1 + Σ_A(k, params))
 
-function analytic_time_averaged_displacement(params::ModelParameters, δ::Real=1e-8)
+function analytic_time_averaged_displacement(params::ModelParameters)
     function integrand(k)
-        dϕ(k, params) * (1/(2π) - ρ_A(k, params, δ))
+        dϕ(k, params) * (1 / (2π) - ρ_A(k, params))
     end
 
     m, _ = hquadrature(integrand, 0, π, reltol=1e-5, abstol=1e-5)
     2m
 end
+
+function construct_residue_poly(k::Real, params::ModelParameters)
+    function elementary_poly(ε)
+        Polynomial([complex(BigFloat(0), BigFloat(ε)), BigFloat(1)])
+    end
+
+
+    full = prod(elementary_poly(ε) for ε in params.ε)
+    weighted = Polynomial([0])
+    gs = (abs2.(params.g) * abs2(v(k, params)))
+    for (i, g) in enumerate(gs)
+        weighted += g .* prod(elementary_poly(ε) for ε in params.ε[1:end.!=i])
+    end
+    return weighted + Polynomial([BigFloat(0), BigFloat(1)]) * full, full
+end
+
+function residues_poly(k::Real, params::ModelParameters)
+    poly, full = construct_residue_poly(k, params)
+    rts = roots(coeffs(poly), polish=true)
+
+    # function refine_roots(r)
+    #     find_zero(poly, r)
+    # end
+
+    # rts = map(refine_roots, rts)
+
+    residuals = Vector{Complex{BigFloat}}(undef, length(rts))
+
+    for (i, r) in enumerate(rts)
+        residuals[i] = full(r) / (fromroots(rts[1:end.!=i])(r))
+    end
+
+    Vector{Float64}(imag.(rts)), Vector{Float64}(residuals)
+end
+
+function ρ_A(t::Real, frequencies::Vector{<:Number}, residues::Vector{<:Number})
+    (sum(residues .* exp.(t * complex.(0, frequencies))) |> abs2) / 2π
+end
+
+
+ρ_A_mean_born(k::Real, T::Real, params::ModelParameters) = 1 / (2π * (1 + Σ_A(k, 1 / T, params)))
+ρ_A_mean_born(k::Real, params::ModelParameters) = 1 / (2π * (1 + Σ_A(k, 0, params)))
+ρ_A_mean(residues::Vector{<:Number}) = sum(abs2.(residues)) / 2π
+
+function ρ_A_mean(T::Real, frequencies::Vector{<:Number}, residues::Vector{<:Number})
+    if T == 0
+        return 1
+    end
+
+    mean::Complex{BigFloat} = 0
+
+    for i = 1:length(frequencies)
+        for j = 1:length(frequencies)
+            if j == i
+                continue
+            end
+
+            ω_i, ω_j = frequencies[[i, j]]
+            diff = complex(0, ω_j - ω_i)
+            mean += conj(residues[i]) * residues[j] * (exp(diff) - 1) / diff
+        end
+    end
+
+    mean /= T * 2π
+    mean += ρ_A_mean(residues)
+    real(mean)
+end
+
+function ρ_A_mean(T::Real, solution::WalkSolution)
+    if T == 0
+        return 1
+    end
+
+    mean::Complex{BigFloat} = 0
+
+    N = size(solution.vectors)[2]
+    residues = solution.vectors[1, :]
+    for i = 1:N
+        for j = 1:N
+            if j == i
+                continue
+            end
+
+            ω_i, ω_j = solution.energies[[i, j]]
+            diff = complex(0, ω_j - ω_i)
+            mean += conj(residues[i]) * residues[j] * (exp(diff) - 1) / diff
+        end
+    end
+
+    mean /= T * 2π
+    mean += ρ_A_mean(solution)
+    real(mean)
+end
+
+ρ_A_mean(solution::WalkSolution) = sum(abs2.(solution.vectors[1, :])) / (2π)
+
+
+function analytic_time_averaged_displacement(T::Real, params::ModelParameters, integrand::Function)
+    m, _ = hquadrature(k -> integrand(k, T, params), 0, π, reltol=1e-5, abstol=1e-5)
+    2m
+end
+analytic_time_averaged_displacement(T::Real, params::ModelParameters) = analytic_time_averaged_displacement(T, params, integrand_diagonalization)
+
+
+function integrand_born(k, params)
+    dϕ(k, params) * (1 / 2π - ρ_A_mean_born(k, params))
+end
+
+function integrand_diagonalization(k, params)
+    sol = solution(k, params)
+    dϕ(k, params) * (1 / 2π - ρ_A_mean(sol))
+end
+
+function integrand_residue(k, params)
+    _, r = residues_poly(k, params)
+    dϕ(k, params) * (1 / 2π - ρ_A_mean(r))
+end
+
+function integrand_born(k, T, params)
+    dϕ(k, params) * (1 / 2π - ρ_A_mean_born(k, T, params))
+end
+
+function integrand_diagonalization(k, T, params)
+    sol = solution(k, params)
+    dϕ(k, params) * (1 / 2π - ρ_A_mean(T, sol))
+end
+
+function integrand_residue(k, T, params)
+    f, r = residues_poly(k, params)
+    dϕ(k, params) * (1 / 2π - ρ_A_mean(T, f, r))
+end
+
+
+function analytic_time_averaged_displacement(params::ModelParameters, integrand::Function)
+    m, _ = hquadrature(k -> integrand(k, params), 0, π, reltol=1e-5, abstol=1e-5)
+    2m
+end
+
+analytic_time_averaged_displacement(params::ModelParameters) = analytic_time_averaged_displacement(params, integrand_diagonalization)
+
+
+time_scale(params::ModelParameters) = 2π/minimum(abs.(params.ε))
 
 end

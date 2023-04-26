@@ -18,38 +18,40 @@
 
 
 * Sampling
+Consider the spectral density \(J(ω)=J_α ω^α \eu^{-\iu ω/ω_c}\).
 #+begin_src jupyter-julia
-  sd = OhmicSpectralDensity(1, 1, 2)
-  plot(e-> (OhmicSpectralDensityIntegral(sd)(e)), 0, 10)
+  sd = OhmicSpectralDensity(1, 1, 1)
+  plot(e-> ((sd)(e)), 0, 10)
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/7f60d06fde6f16a58b425f66b44ac2026a6a5468.svg]]
+[[file:./.ob-jupyter/1b4fe0da06107cb6b722df91f2670b1445e4e9a8.svg]]
 
-#+begin_src jupyter-julia
-    begin
-        ε, g = exponential_energy_distribution(sd, 10)
-        plot(e->sd(e), 0, 20, label="J")
-        scatter!(ε, sd.(ε), label="J(ε)")
-        scatter!(ε, g.^2, label="g")
-        #ε[1] - ε[2]
-    end
-#+end_src
-
-#+RESULTS:
-[[file:./.ob-jupyter/ebe7c6e0fde4a0ac19399281b4b5521cef106a1b.svg]]
-
+We can either sample energies linearly spaced up to the cutoff.
 #+begin_src jupyter-julia
   begin
-      ε, g = linear_energy_distribution(sd, 100)
-      plot(e->sd(e), 0, 11, label="J")
+      ε, g = linear_energy_distribution(sd, 20)
+      plot(e->sd(e), 0, 6, label="J")
       scatter!(ε, sd.(ε), label="J(ε)")
       scatter!(ε, g.^2, label="g")
   end
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/8a5cef558d2e8e984283813687a63076999d125a.svg]]
+[[file:./.ob-jupyter/1370b69b40c9d1c21a7504b7102ceb24f2d91a2f.svg]]
+
+Or we take them exponentially spaced.
+#+begin_src jupyter-julia
+  begin
+      ε, g = exponential_energy_distribution(sd, 20)
+      plot(e->sd(e), 1e-3, 6, label="J")
+      scatter!(ε, sd.(ε), label="J(ε)")
+      scatter!(ε, g.^2, label="g")
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/b7188429e89ac868e254b4e682e126c718a1502f.svg]]
 
 * General Solution
 The behavior is overly sensitive on the coupling strength.
@@ -99,87 +101,565 @@ For small detuning it's completely bunged up.
 * With Schrieffer-Wolff
 #+begin_src jupyter-julia
   vv = 1
+  α = 0.5
+  N = 50
+  k = 0
+  sd = OhmicSpectralDensity(2, 1e-2, α)
+  ε, g = exponential_energy_distribution(sd, N)
+  #ε .-= .5
+  params = ModelParameters(v=vv, u=2, ε=ε, g=g, sw_approximation=true)
+
+  plot(ylim=(0,1))
+
+  sol = solution(k, params)
+  f, r = residues_poly(k, params)
+
+  plot(t->(ρ_A_mean_born(k, t, params) * 2π),  0, 100, label="Born, Mean")
+
+  plot!(t->(a_weight(t, sol)), label="Exact")
+  #plot!(t->(ρ_A(t, f, r) * 2π),  label="Exact using polynomials :)")
+  plot!(t->(ρ_A_mean(t, f, r) * 2π), ylim=(0,1), label="Exact Mean using polynomials :)")
+  plot!(t->(ρ_A_mean(t, sol) * 2π), ylim=(0,1), label="Exact Mean using diagn :)", linestyle=:dash)
+  # hline!([2π* ρ_A_mean(r)], label="Long Time Average, Exact")
+  # hline!([2π*ρ_A_mean(sol)], label="Long Time Average, Exact")
+  # hline!([2π*ρ_A_mean_born(k, params)], label="Long Time Average, Born")
+  # hline!([analytic_time_averaged_displacement(params)], label="Mean Displacement Diagn", linewidth=2)
+  # hline!([analytic_time_averaged_displacement(params, integrand_born)], label="Mean Displacement Born", linestyle=:dash, color=:black)
+  # #print(sum(abs2.(g) ./ ε), sum(abs2.(r)))
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/46e1e9fb98493a1dce350a3d0e170c063c5655e3.svg]]
+
+
+#+begin_src jupyter-julia
+  sd =(OhmicSpectralDensity(1, 1, 1))
+
+  i=(OhmicSpectralDensityIntegral(sd))
+
+  _, g = exponential_energy_distribution(sd, 10)
+  sum(abs2.(g))
+#+end_src
+
+#+RESULTS:
+: 1.0
+
+#+begin_src jupyter-julia
+  vv = 1
+  N = 100
+  k = 0
+
+  α = 0.5
+  sd = OhmicSpectralDensity(2, 1e-2, α)
+  ε, g = exponential_energy_distribution(sd, N)
+  params = ModelParameters(v=vv, u=2, ε=ε, g=g, sw_approximation=true)
+  #ε .-= .5
+
+  plot(ylim=(0,1.5))
+
+  sol = solution(k, params)
+  plot!(t->(a_weight(t, sol)), 0, 100, ylim=(0,1.5), label="\$\\rho_A\$ α=$(α)")
+  plot!(t->(ρ_A_mean(t, sol) * 2π), ylim=(0,1), label="\$\\bar{\\rho}_A\$ α=$(α)")
+  plot!(t->(analytic_time_averaged_displacement(t, params)), ylim=(0,1), label="\$\\langle m\\rangle\$ α=$(α)")
+
+
   α = 2
+  sd = OhmicSpectralDensity(2, 1e-2, α)
+  ε, g = exponential_energy_distribution(sd, N)
+  params = ModelParameters(v=vv, u=2, ε=ε, g=g, sw_approximation=true)
+
+  sol = solution(k, params)
+  plot!(t->(a_weight(t, sol)), label="\$\\rho_A\$ α=$(α)")
+  plot!(t->(ρ_A_mean(t, sol) * 2π), ylim=(0,1), label="\$\\bar{\\rho}_A\$ α=$(α)")
+  plot!(t->(analytic_time_averaged_displacement(t, params)), ylim=(0,1), label="\$\\langle m\\rangle\$ α=$(α)")
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/755dfbb7e50dfa0cd41622aa237ea039020cc260.svg]]
+
+
+
+#+begin_src jupyter-julia
+  vv = 1
+  N = 10
+  k = 0
+
+  α = 0.5
+  sd = OhmicSpectralDensity(1e-2, 1e-1, α)
+  ε, g = linear_energy_distribution(sd, N)
+  params = ModelParameters(v=vv, u=2, ε=ε, g=g, sw_approximation=true)
+  #ε .-= .5
+
+  plot(ylim=(0,1.5))
+
+  sol = solution(k, params)
+  plot!(t->(a_weight(t, sol)), 0, 100, ylim=(0,1.5), label="\$\\rho_A\$ α=$(α)")
+  plot!(t->(ρ_A_mean(t, sol) * 2π), ylim=(0,1), label="\$\\bar{\\rho}_A\$ α=$(α)")
+  plot!(t->(analytic_time_averaged_displacement(t, params)), ylim=(0,1), label="\$\\langle m\\rangle\$ α=$(α)")
+  plot!(t-> cos(3*sqrt(sum(abs2.(g))) * t)^2)
+
+  α = 2
+  sd = OhmicSpectralDensity(1e-2, 10, α)
+  ε, g = linear_energy_distribution(sd, N)
+  params = ModelParameters(v=vv, u=2, ε=ε, g=g, sw_approximation=true)
+
+  sol = solution(k, params)
+  plot!(t->(a_weight(t, sol)), label="\$\\rho_A\$ α=$(α)")
+  plot!(t->(ρ_A_mean(t, sol) * 2π), ylim=(0,1), label="\$\\bar{\\rho}_A\$ α=$(α)")
+  plot!(t->(analytic_time_averaged_displacement(t, params)), ylim=(0,1), label="\$\\langle m\\rangle\$ α=$(α)")
+  plot!(t-> cos(3*sqrt(sum(abs2.(g))) * t)^2)
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/a4a938dfeba1cc3358b5ac8482a009e8e0af0767.svg]]
+
+Different kind of transition -> goes into bath fast and totally or not.
+
+
+#+begin_src jupyter-julia
+  vv = 1
+  N = 20
+  k = 0
+
+  α = 0.5
+  sd = OhmicSpectralDensity(1e-3, 1e-2, α)
+  ε, g = exponential_energy_distribution(sd, N)
+  params = ModelParameters(v=vv, u=2, ε=ε, g=g, sw_approximation=true)
+  #ε .-= .5
+
+  plot(ylim=(0,1.5))
+
+  sol = solution(k, params)
+  #plot!(t->(a_weight(t, sol)), 0, 100, ylim=(0,1.5), label="\$\\rho_A\$ α=$(α)")
+  plot!(t->(ρ_A_mean(t, sol) * 2π),0, 100,  ylim=(0,1), label="\$\\bar{\\rho}_A\$ α=$(α)")
+  plot!(t->(analytic_time_averaged_displacement(t, params)), ylim=(0,1), label="\$\\langle m\\rangle\$ α=$(α)")
+
+
+  α = .5
+  sd = OhmicSpectralDensity(1e-3, 1e-2, α)
+  ε, g = exponential_energy_distribution(sd, N)
+  params = ModelParameters(v=vv, u=.1, ε=ε, g=g, sw_approximation=true)
+  sol = solution(k, params)
+  #plot!(t->(a_weight(t, sol)), label="\$\\rho_A\$ α=$(α)")
+  plot!(t->(ρ_A_mean(t, sol) * 2π), ylim=(0,1), label="\$\\bar{\\rho}_A\$ α=$(α)")
+  plot!(t->(analytic_time_averaged_displacement(t, params)), ylim=(0,1), label="\$\\langle m\\rangle\$ α=$(α)")
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/1e605a375adb10751bb339d4dd8e5389271b7846.svg]]
+
+
+#+begin_src jupyter-julia
+  vv = 1
   N = 1000
   k = 0
-  sd = OhmicSpectralDensity(1vv, .01, α)
-  ε, g = exponential_energy_distribution(sd, N, 1e-3/2)
-  ε .-= .18
-  params = ModelParameters(v=vv, u=0, ε=ε, g=g, sw_approximation=true)
+
+  α = 0.5
+  sd = OhmicSpectralDensity(1, 1e-2, α)
+  ε, g = exponential_energy_distribution(sd, N)
+  params = ModelParameters(v=vv, u=2, ε=ε, g=g, sw_approximation=true)
+  #ε .-= .5
+
+  plot(ylim=(0,1.5))
+
+  plot!(t->(ρ_A_mean_born(t, params) * 2π), 0, 1000, ylim=(0,1), label="\$\\bar{\\rho}_A\$ α=$(α)")
+  plot!(t->(analytic_time_averaged_displacement(t, params, integrand_born)), ylim=(0,1), label="\$\\langle m\\rangle\$ α=$(α)")
+
+
+  α = 2
+  sd = OhmicSpectralDensity(2, 1e-2, α)
+  ε, g = exponential_energy_distribution(sd, N)
+  params = ModelParameters(v=vv, u=2, ε=ε, g=g, sw_approximation=true)
+
   sol = solution(k, params)
-  plot(t->(a_weight(t, sol)), ylim=(0, 1), 0, 2000)
-  #hline!([1/(1+1.724*abs2(v(k,params))*sd.J*sd.Δ^(sd.α-1)/(sd.α-1))])
-  #1/(ε[2]- ε[1])
+
+  plot!(t->(ρ_A_mean_born(t, params) * 2π), ylim=(0,1), label="\$\\bar{\\rho}_A\$ α=$(α)")
+  plot!(t->(analytic_time_averaged_displacement(t, params, integrand_born)), ylim=(0,1), label="\$\\langle m\\rangle\$ α=$(α)")
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/544fd781249331b49033cf21da05f3aa3b1f68db.svg]]
-
-#+begin_src jupyter-python
-  time_averaged_displacement((500, 510), params, 0)
-#+end_src
-
-#+RESULTS:
-: 3da88130-e503-4d86-9b3b-c6070b176d8d
+[[file:./.ob-jupyter/10547ba2455fc26ab10739304974a784594414e8.svg]]
 
 
-* Analytic Result for Weak Coupling
-Here the analytic result from [cite:@Ricottone2020 p. 5 "(30)"]
-\( \begin{aligned} \rho_{A}(k)= & \lim _{s \rightarrow 0} s
-\tilde{\rho}_{A}(k, s)=\frac{1}{2 \pi} \frac{1}{1+i
-\Sigma_{A}^{\prime}(k)}, \\ & \Sigma_{A}^{\prime}(k)=\lim _{s
-\rightarrow 0} \frac{\tilde{\Sigma}_{A}(k, s)}{s} .\end{aligned} \)
-is implemented numerically.
-
-We find that if we shift the sampled energies so that the first energy
-is very close to zero, the phase diagram pops out nicely.
+* Exact Results vs Born Approx
+Shifting the energies slightly to the negative destroys any dependence
+on α.
 #+begin_src jupyter-julia
-  plot_analytic_phase_diagram(50, num_bath_modes=100000, ε_min=1e-5, bath_discretization=linear_energy_distribution)
+  plot_analytic_phase_diagram(10, ω_c=.1, coupling_strength=1e-2, num_bath_modes=100, ε_min=.01)
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/3a50a39de5f1c304b38a0f837798c339016d2c53.svg]]
+:RESULTS:
+: maximum(displacement) = 0.7522407747138918
+[[file:./.ob-jupyter/c1220c1f8c39febc69e3742679ae3ce900b0c1b9.svg]]
+:END:
 
-We can also look at more bath modes
+Same goes for the Born approx as shown in [cite:@Ricottone2020].
 #+begin_src jupyter-julia
-  plot_analytic_phase_diagram(50, num_bath_modes=1000, ε_min=1e-3)
+  plot_analytic_phase_diagram(10, ω_c=.1, coupling_strength=1e-2, num_bath_modes=100, ε_min=.01, integrand=integrand_born)
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/f860fc7d4a93a20c83f7b29f56627db5a8669da2.svg]]
+:RESULTS:
+: maximum(displacement) = 1.0000000000084774
+[[file:./.ob-jupyter/cd322a635085043a902a54a7583bb4148a333f93.svg]]
+:END:
 
-Little changes, but the transition gets crisper.
 
-With less modes, it becomes more noticeable that the killing of the
-phase transition washes out. (no matter the fudge factor)
+
+For the exact case we get a dependence on α, but no universal values.
 #+begin_src jupyter-julia
-  plot_analytic_phase_diagram(50, num_bath_modes=30, ε_min=1e-2/2)
+  plot_analytic_phase_diagram(10, ω_c=.1, coupling_strength=1e-2, num_bath_modes=100)
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/c04e20b3e4b62488b28eaf72bfb8cb1e4b9a8a60.svg]]
-Doing the same with the linear distribution gives worse results.
+:RESULTS:
+: maximum(displacement) = 0.6503353017116404
+[[file:./.ob-jupyter/37193d50d8651c8dc9f62a2293f440d1f17a47be.svg]]
+:END:
+
+It looks a little better in the born approx
 #+begin_src jupyter-julia
-  plot_analytic_phase_diagram(50, num_bath_modes=30, ε_min=1e-2/2, bath_discretization=linear_energy_distribution)
+  plot_analytic_phase_diagram(10, ω_c=.1, coupling_strength=1e-2, num_bath_modes=100, integrand=integrand_born)
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/f20bfaeb41cd7adce636db947defeb150e188ac0.svg]]
+:RESULTS:
+: maximum(displacement) = 0.9995430554416191
+[[file:./.ob-jupyter/7ed31189320d0bb2c55c8535c245f53c16d2dab1.svg]]
+:END:
 
 
-If I change the "fudge factor", we can get very different results.
+If we make the density of modes near zero large, we can approach the
+phase diagram.
 #+begin_src jupyter-julia
-  begin
-      p = []
-      N = 8
-      for δ in [0; 10 .^ (collect(LinRange(-5,-1, N-1)))]
-          current_plot =  plot_analytic_phase_diagram(50, num_bath_modes=300, ε_min=δ)
-          current_plot[1][:title] = δ
-          push!(p, current_plot)
-      end
-      plot(p..., layout=(N,1), size=default(:size) .* (2, 2N))
-  end
+  plot_analytic_phase_diagram(50, ω_c=.001, coupling_strength=1e-4, num_bath_modes=20000, integrand=integrand_born)
 #+end_src
 
 #+RESULTS:
-: 97990142-5721-446a-ab2a-4f8ce8c0c6ac
+:RESULTS:
+: maximum(displacement) = 0.9999999774811514
+[[file:./.ob-jupyter/1ecec7610e63e22eb09e8440a4e6db542a7552ec.svg]]
+:END:
+
+But not without the Born approximation, even at these weak coupings.
+#+begin_src jupyter-julia
+  plot_analytic_phase_diagram(20, ω_c=.001, coupling_strength=1e-4, num_bath_modes=20)
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+: maximum(displacement) = 0.580312904773132
+[[file:./.ob-jupyter/eb02aa6147bb7d7e1dba64c2976759cebf51e062.svg]]
+:END:
+
+
+#+begin_src jupyter-julia
+  plot_analytic_phase_diagram(20, ω_c=.00001, coupling_strength=1e-4, num_bath_modes=20)
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+: maximum(displacement) = 0.5420075766565349
+[[file:./.ob-jupyter/e67d09270c6116f1d7062c3c8ab8328988c7be3b.svg]]
+:END:
+
+Or rather: the universal value appears to be 1/2.
+
+
+For a "reasonable" coupling strength and cutoff, we don't see anything
+resembling the sharp phase transition.
+#+begin_src jupyter-julia
+  plot_analytic_phase_diagram(20, ω_c=1, coupling_strength=1e-2, num_bath_modes=100)
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+: maximum(displacement) = 0.45857617598017575
+[[file:./.ob-jupyter/d49629372415e0099865d9a7a729e0aa26b4239c.svg]]
+:END:
+
+* The same for finite times
+#+begin_src jupyter-julia
+  plot_analytic_phase_diagram(20, ω_c=1, coupling_strength=1e-2, num_bath_modes=20, T=10)
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+: maximum(displacement) = 0.39251522328030214
+[[file:./.ob-jupyter/c0c8a821b323ee931510a50f28b36fe6662b72ad.svg]]
+:END:
+
+#+begin_src jupyter-julia
+  plot_analytic_phase_diagram(20, ω_c=1, coupling_strength=1e-2, num_bath_modes=10, T=10, integrand=integrand_born)
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+: maximum(displacement) = 0.4440551961877732
+[[file:./.ob-jupyter/5e6b4e11d5f50d6eb5d8a2ec94289bac70aabebb.svg]]
+:END:
+
+
+For the quasi degenerate case:
+#+begin_src jupyter-julia
+  plot_analytic_phase_diagram(20, ω_c=1e-4, coupling_strength=1e-2, num_bath_modes=20, T=10)
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+: maximum(displacement) = 0.4792668090891755
+[[file:./.ob-jupyter/1cc75c9673bc3cb473747d898328ff843f6a8ab9.svg]]
+:END:
+
+
+Even in the Born case it takes quite long...
+#+begin_src jupyter-julia
+  plot_analytic_phase_diagram(20, ω_c=1, coupling_strength=1e-2, num_bath_modes=10000, T=100, integrand=integrand_born)
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+: maximum(displacement) = 0.8793284595118372
+[[file:./.ob-jupyter/ad0b3d355aed08818bb7552b3c889ad0b728626c.svg]]
+:END:
+
+
+#+begin_src jupyter-julia
+  plot_analytic_phase_diagram(20, ω_c=1, coupling_strength=1e-2, num_bath_modes=10000, T=1000, integrand=integrand_born)
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+: maximum(displacement) = 0.9860820779145756
+[[file:./.ob-jupyter/b31c3436dad8c235bb04f8ef27eed1da659f71e7.svg]]
+:END:
+
+#+begin_src jupyter-julia
+  plot_analytic_phase_diagram(20, ω_c=1, coupling_strength=1e-2, num_bath_modes=10000, T=10000, integrand=integrand_born)
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+: maximum(displacement) = 0.9985821423554615
+[[file:./.ob-jupyter/0af494a76b6f15689c32d6e2a54755091d1760cd.svg]]
+:END:
+
+#+begin_src jupyter-julia
+  plot_analytic_phase_diagram(20, ω_c=1, coupling_strength=1e-2, num_bath_modes=10000, integrand=integrand_born)
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+: maximum(displacement) = 0.999549877296493
+[[file:./.ob-jupyter/0ac233d47301ab50acf10141bc83cbc5f3181d5a.svg]]
+:END:
+
+#+begin_src jupyter-julia
+  plot_analytic_phase_diagram(20, ω_c=2, coupling_strength=1e-2, num_bath_modes=10, T=100)
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+: maximum(displacement) = 1.6406084570349142
+[[file:./.ob-jupyter/3bfa0ec9595ee82aeaaee2317ab87b3f3680d4ea.svg]]
+:END:
+
+
+#+begin_src jupyter-julia
+  plot_analytic_phase_diagram(20, ω_c=3, coupling_strength=1e-5, num_bath_modes=50)
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+: maximum(displacement) = 0.002113755017387496
+[[file:./.ob-jupyter/1089adcb07d261fcda736b3b61f43612dec51ad7.svg]]
+:END:
+
+
+#+begin_src jupyter-julia
+  plot_analytic_phase_diagram(20, ω_c=3, coupling_strength=1e-1, num_bath_modes=100000, integrand=integrand_born)
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+: maximum(displacement) = 0.9998784332026658
+[[file:./.ob-jupyter/d63530115338a95c966e94294c953a4fc8b4661b.svg]]
+:END:
+
+
+
+* What have I been up to lately?                                     :ATTACH:
+:PROPERTIES:
+:ID:       35b8cc22-101d-47d0-b8d0-2c206c8de19d
+:END:
+
+I've tried to reproduce the phase digram for the topological random
+walk of [cite:@Ricottone2020] for a /finite/ bath.
+
+#+DOWNLOADED: screenshot @ 2023-04-25 20:37:30
+#+ATTR_ORG: :width 500
+[[attachment:2023-04-25_20-37-30_screenshot.png]]
+
+#+DOWNLOADED: screenshot @ 2023-04-25 20:35:59
+#+ATTR_ORG: :width 500
+[[attachment:2023-04-25_20-35-59_screenshot.png]]
+
+** Things Attempted
+1. Exact diagonalization of the full system -> hard to connect to the
+   case in the paper.
+2. Exact diagonalization of model with B site eliminated -> still no luck
+3. Implementing the solution of the weak-coupling equation from
+   [cite:@Ricottone2020] -> works somewhat, but only with /many/
+   (> 1000) modes
+[[file:./.ob-jupyter/87f2cd036fada5412a4e3b9784351a7d38d612ef.svg]]
+4. Connecting to the case w/o. Born approximation -> next
+
+   TL;DR: at
+   least in the parameter regeime similar to [cite:@Ricottone2020] the
+   born approximation is inconsisent.
+
+
+* Born vs Exact for a finite Bath
+Let us plot the relative /difference/ in the phase diagram for the
+average displacement with and without the Born (second order weak
+coupling) approximation.
+
+** Weak Coupling
+For a coupling strength of \(\int_0^\infty J(ω)\dd{ω} = 10^{-4}\) they
+match up reasonably well.
+#+begin_src jupyter-julia
+  plot_analytic_phase_diagram_born_v_exact(10, ω_c=3, coupling_strength=1e-4, num_bath_modes=100)
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+: maximum(displacement) = 0.04218712721312972
+[[file:./.ob-jupyter/4ccfe8e9fd6cd2fbe26b8870fc099be7a318cb81.svg]]
+:END:
+
+** Slightly Stronger Coupling
+Less so for stronger coupling \(10^{-2}\). We have a relative
+difference on the order of 100%.
+#+begin_src jupyter-julia
+  plot_analytic_phase_diagram_born_v_exact(10, ω_c=3, coupling_strength=1e-2, num_bath_modes=100)
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+: maximum(displacement) = 1.1905066336656018
+[[file:./.ob-jupyter/f600fe43c13de765b18611753d0f696fc7b65a23.svg]]
+:END:
+
+** Actual Phase Diagram where Born is Consistent
+#+begin_src jupyter-julia
+  plot_analytic_phase_diagram(10, ω_c=3, coupling_strength=1e-4, num_bath_modes=100)
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+: maximum(displacement) = 0.013525833315787555
+[[file:./.ob-jupyter/b0aa691820796d13231fe12be94381d49c505a84.svg]]
+:END:
+*** With Born
+
+Let's see if we can get the phase diagram with this coupling strength.
+#+begin_src jupyter-julia
+  plot_analytic_phase_diagram(10, ω_c=3, coupling_strength=1e-4, num_bath_modes=10_000, integrand=integrand_born)
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+: maximum(displacement) = 0.5199076517638719
+[[file:./.ob-jupyter/b3e93be61338f3f0267dba1c6be9a42be7ecea78.svg]]
+:END:
+*** More states
+Maybe with more bath states...
+#+begin_src jupyter-julia
+  plot_analytic_phase_diagram(10, ω_c=3, coupling_strength=1e-4, num_bath_modes=100_000, integrand=integrand_born)
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+: maximum(displacement) = 0.8966684321759277
+[[file:./.ob-jupyter/4c85d634bd51e2d6a149eecce8fa2e4a69866029.svg]]
+:END:
+
+Numerically it seems to be hard to approach the continuum limit under
+weak coupling or there is a bug in my code. Likely the mean
+displacement is skewed due to recurrences.
+
+
+In the continuum limit we have
+\( \rho_{A}(k)=\left\{\begin{array}{cc}0, & 0 \leqslant \alpha \leqslant 1, \\ \frac{1}{2 \pi} \frac{1}{1+\Omega_{\alpha}^{-}(k)}, & \alpha>1 .\end{array}\right. \)
+
+With \( \Omega_{\alpha}^{ \pm}(k)=2 J_{\alpha}|v(k)|^{2}
+\frac{\Delta^{\alpha \pm 1}}{\alpha \pm 1} \),
+so for an actually normalized distribution
+\(ρ_A(k)\to 1/(2π)\) so we should get a nice sharp transition for \(J_α\to0\).
+
+*** Inconsistent Regime
+If we go into the inconsistent regime we get something akin to the
+phase diagram.
+
+#+begin_src jupyter-julia
+  plot_analytic_phase_diagram(10, ω_c=3, coupling_strength=1e-1, num_bath_modes=100_000, integrand=integrand_born)
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+: maximum(displacement) = 0.9998784332026658
+[[file:./.ob-jupyter/87f2cd036fada5412a4e3b9784351a7d38d612ef.svg]]
+:END:
+
+
+#+begin_src jupyter-julia
+  plot_analytic_phase_diagram(10, ω_c=3, coupling_strength=1e-1, num_bath_modes=1000_000, integrand=integrand_born)
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+: maximum(displacement) = 0.9999878416384433
+[[file:./.ob-jupyter/7a0298da61eea9dfd5472b441a24528cceb7dd57.svg]]
+:END:
+
+** Actual Phase Diagram with Exact Diagonalization
+#+begin_src jupyter-julia
+  plot_analytic_phase_diagram(10, ω_c=3, coupling_strength=.01, num_bath_modes=100, T=200)
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+: maximum(displacement) = 0.33592445031356877
+: (2π) / min_e = 417.83094807422134
+: (2π) / max_g = 628.3185307179584
+[[file:./.ob-jupyter/c159490b17ca83a3d48e1d2d329bab1123e32dd5.svg]]
+:END:
+
+These timescales are nonsensical, as they force the strong coupling limit.
+
+*** No great Difference to Infinite Time
+#+begin_src jupyter-julia
+  plot_analytic_phase_diagram(10, ω_c=3, coupling_strength=.01, num_bath_modes=100)
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+: maximum(displacement) = 0.3375676474704954
+: (2π) / min_e = 417.83094807422134
+: (2π) / max_g = 628.3185307179584
+[[file:./.ob-jupyter/429f35ea7002bad7c37e808f804bb54458d7a16e.svg]]
+:END:
+
+*** Very Short Times
+#+begin_src jupyter-julia
+  plot_analytic_phase_diagram(10, ω_c=3, coupling_strength=.01, num_bath_modes=100, T=1)
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+: maximum(displacement) = 0.008928216085179347
+: (2π) / min_e = 417.83094807422134
+: (2π) / max_g = 628.3185307179584
+[[file:./.ob-jupyter/c69c009b7be0235f8d0a037991bdf1dc7f58514f.svg]]
+:END:
