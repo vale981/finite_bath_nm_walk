@@ -5,6 +5,7 @@ export ModelParameters
 export v
 export hamiltonian
 export solution
+export WalkSolution
 export Σ_A
 export ρ_A
 export ρ_A_mean
@@ -58,6 +59,24 @@ are arrived at."""
     sw_approximation::Bool = false
 end
 
+
+function ModelParameters(v::Real, u::Real, ω::Real, sw_approximation::Bool, J::Real, α::Real, ω_c::Real, N::Integer, discretization::Function, ε_shift::Real)
+    sd = OhmicSpectralDensity(ω_c, J, α)
+    ε, g = discretization(sd, N)
+    ε .+= ε_shift
+    ModelParameters(v, u, ω, ε, g, sw_approximation)
+end
+
+ModelParameters(v::Real, u::Real, ω::Real, sw_approximation::Bool, J::Real, α::Real, ω_c::Real, N::Integer, discretization::Function) = ModelParameters(v, u, ω, sw_approximation, J, α, ω_c, N, discretization, 0)
+
+
+ModelParameters(v::Real, u::Real, ω::Real, J::Real, α::Real, ω_c::Real, N::Integer, discretization::Function) = ModelParameters(v, u, ω, false, J, α, ω_c, N, discretization)
+ModelParameters(v::Real, u::Real, J::Real, α::Real, ω_c::Real, N::Integer, discretization::Function) = ModelParameters(v, u, 0, true, J, α, ω_c, N, discretization)
+ModelParameters(v::Real, u::Real, J::Real, α::Real, ω_c::Real, N::Integer) = ModelParameters(v, u, J, α, ω_c, N, exponential_energy_distribution)
+ModelParameters(v::Real, u::Real, ω::Real, J::Real, α::Real, ω_c::Real, N::Integer) = ModelParameters(v, u, ω, J, α, ω_c, N, exponential_energy_distribution)
+
+
+
 """Returns the number of bath states for the model."""
 num_bath_modes(p::ModelParameters) = length(p.g)
 
@@ -76,7 +95,7 @@ struct OhmicSpectralDensity
     α::Real
 end
 
-(J::OhmicSpectralDensity)(ε::Real) = ε^J.α * J.J * exp(-ε / J.ω_c) / (gamma(1 + J.α) * J.ω_c^(1+J.α))
+(J::OhmicSpectralDensity)(ε::Real) = ε^J.α * J.J * exp(-ε / J.ω_c) / (gamma(1 + J.α) * J.ω_c^(1 + J.α))
 
 
 struct OhmicSpectralDensityIntegral
@@ -87,7 +106,7 @@ end
 
 OhmicSpectralDensityIntegral(J::OhmicSpectralDensity) = OhmicSpectralDensityIntegral(J.ω_c, J.J, J.α)
 
-(J::OhmicSpectralDensityIntegral)(ε::Real) = J.J * J.ω_c^(J.α + 0) * (gamma(J.α + 1) - gamma(1 + J.α, ε / J.ω_c)) / (gamma(1 + J.α) * J.ω_c^(1+J.α))
+(J::OhmicSpectralDensityIntegral)(ε::Real) = J.J * J.ω_c^(J.α + 0) * (gamma(J.α + 1) - gamma(1 + J.α, ε / J.ω_c)) / (gamma(1 + J.α) * J.ω_c^(1 + J.α))
 
 """The winding phase of the hopping amplitude.
    The arguments are as in [`v`](@ref)."""
@@ -128,8 +147,16 @@ function hamiltonian(k::Real, params::ModelParameters)::Matrix{<:Number}
 end
 
 
+"""A structure holding the information for the dynamic solution of the
+   quantum walk for a specific ``k``. Callable with a time parameter."""
+struct WalkSolution
+    vectors::Matrix{<:Complex}
+    energies::Vector{<:Real}
+    params::ModelParameters
+end
 
-function solution(k::Real, params::ModelParameters, m_0::Integer=0)
+solution(args...) = WalkSolution(args...)
+function WalkSolution(k::Real, params::ModelParameters, m_0::Integer=0)
     H = hamiltonian(k, params)
     energies, vectors = eigen(H)
     energies = real.(energies)
@@ -143,14 +170,6 @@ function solution(k::Real, params::ModelParameters, m_0::Integer=0)
     coefficients = vectors' * ψ_0
 
     WalkSolution((coefficients' .* vectors), energies, params)
-end
-
-"""A structure holding the information for the dynamic solution of the
-   quantum walk for a specific ``k``. Callable with a time parameter."""
-struct WalkSolution
-    vectors::Matrix{<:Complex}
-    energies::Vector{<:Real}
-    params::ModelParameters
 end
 
 """
@@ -405,6 +424,6 @@ end
 analytic_time_averaged_displacement(params::ModelParameters) = analytic_time_averaged_displacement(params, integrand_diagonalization)
 
 
-time_scale(params::ModelParameters) = 2π/minimum(abs.(params.ε))
+time_scale(params::ModelParameters) = 2π / minimum(abs.(params.ε))
 
 end

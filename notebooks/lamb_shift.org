@@ -1,0 +1,196 @@
+#+PROPERTY: header-args :session finite_bath_lamb :kernel julia-1.8 :pandoc yes :async yes
+
+#+begin_src jupyter-julia
+  using DrWatson
+  using Revise
+  using Plots
+  using LinearAlgebra
+  @quickactivate "discrete_walk"
+
+  Revise.includet(srcdir("WalkModel.jl"))
+  using .WalkModel
+  Revise.includet(srcdir("Utilities.jl"))
+  using .Utilities
+#+end_src
+
+#+RESULTS:
+: [32m[1m  Activating[22m[39m project at `~/Documents/org/roam/data/c4/5097d2-2599-426d-82db-6ecfb5207151`
+
+
+#+begin_src jupyter-julia
+  (prototype, spectral_density) = let
+      v = 1
+      u = .5
+      J = .1
+      α = 0.5
+      ω_c = 3
+      N = 100
+      sd = OhmicSpectralDensity(J, ω_c, α)
+      ModelParameters(v, u, J, α, ω_c, N), sd
+  end;
+#+end_src
+
+#+RESULTS:
+
+#+begin_src jupyter-julia
+  lamb_shift(sol::WalkSolution) = sol.energies[begin + 1] - sol.energies[begin]
+  relative_lamb_shift(sol::WalkSolution) = lamb_shift(sol) / minimum(abs.(sol.energies[begin + 2:end] - sol.energies[begin + 1:end-1]))
+#+end_src
+
+#+RESULTS:
+: relative_lamb_shift (generic function with 1 method)
+
+* Hunting for the Lamb Shift
+Let's start with definitng our system.
+
+Now we can diagonalize and plot the density of states.
+#+begin_src jupyter-julia
+  sol = WalkSolution(.5, prototype)
+  histogram(sol.energies[begin+1:end], label="Continuum", xlim=(-1, 2), bins=200)
+  vline!(sol.energies[begin:begin + 1], linewidth=2, label="Isolated")
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/ab2c0677668a0c329d5493d37a24530f5fc87010.svg]]
+
+We see a nice gap :).
+
+* Systematics
+Now let's plot the gap between the continuum and the isolated state as
+a function of different parameters.
+
+** k - Dependence
+Let's look at the lamb shift as a function of `k`.
+So up to scaling, it is the same! This is sensible, as this is the
+only \(k\) dependence of the problem.
+#+begin_src jupyter-julia
+   begin
+       plot(k -> WalkSolution(k, ModelParameters(prototype.v, prototype.u, 0, prototype.ε, prototype.g, true)) |> lamb_shift, 0, 2π,
+            label="lamb shift", xlabel="k")
+       plot!(k -> abs2(v(k, prototype)), 0, 2π, label="v(k)")
+   end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/a5b73faa0240f51afd8473224c5a5a7981d1cb32.svg]]
+
+
+This also holds for stronger coupling.
+#+begin_src jupyter-julia
+    begin
+        plot(k -> WalkSolution(k, ModelParameters(prototype.v, prototype.u, 0, prototype.ε, prototype.g * 10, true)) |> lamb_shift, 0, 2π,
+             xlabel="k", label="lamb shift")
+        plot!(k -> abs2(v(k, prototype)), 0, 2π, label="v(k)")
+    end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/f804f92cf55a13d279af103a19ec339266d5ca98.svg]]
+
+
+Or without the SW transform.
+#+begin_src jupyter-julia
+    begin
+        plot(k -> WalkSolution(k, ModelParameters(prototype.v, prototype.u, 0, prototype.ε, prototype.g * 10, false)) |> lamb_shift, 0, 2π,
+             label="lamb shift", xlabel="k")
+        plot!(k -> abs2(v(k, prototype)), 0, 2π, label="v(k)")
+    end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/b48ce91ffd877416920aea0443e7f4f6e4742252.svg]]
+
+** α - Dependence
+We find a very minor dependence on α.
+#+begin_src jupyter-julia
+  begin
+      p = plot(ylabel="lamb shift (normalized)", xlabel="α")
+      local shift(α, J_rel) = lamb_shift(WalkSolution(0, ModelParameters(prototype.v, prototype.u, spectral_density.J * J_rel, α, spectral_density.ω_c, 100)))
+      for J_rel in [1, 2]
+          local norm = shift(0, J_rel)
+          plot!(α -> shift(α, J_rel) / norm, 0, 4, label="J_rel = $(J_rel)")
+      end
+      p
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/de0bd31d50b235ed13d0d181a5916be9b6217c9c.svg]]
+
+With increasing coupling strength this dependence is more and more
+sensitive, but it amounts to only a few percent.
+
+** N - Dependence
+#+begin_src jupyter-julia
+  begin
+      local Ns = collect(10:500)
+      local shifts = @. lamb_shift(WalkSolution(0, ModelParameters(prototype.v, prototype.u, spectral_density.J, spectral_density.α, spectral_density.ω_c, Ns)))
+      plot(Ns, shifts / shifts[begin], ylabel="lamb shift", xlabel="N")
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/5aefb40946c3d22d29311d9ba9241652112493aa.svg]]
+Looks like an exponential decrease.
+
+This also holds when I take the bath modes to be linearly spaced.
+#+begin_src jupyter-julia
+  begin
+      local Ns = collect(10:500)
+      local shifts = @. lamb_shift(WalkSolution(0, ModelParameters(prototype.v, prototype.u, spectral_density.J, spectral_density.α, spectral_density.ω_c, Ns, linear_energy_distribution)))
+      plot(Ns, shifts ./ shifts[begin], ylabel="lamb shift", xlabel="N")
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/e042588d72a621314ed13f5835cd1c8488502278.svg]]
+We see that we appriach a limit, but the relative difference is not
+too great. In fact, here it is sub percent. We shoudl be able to
+obtain the lamb shift from the continuum limit.
+
+** Coupling Strength - Dependence
+
+If we plot the lamb shift relative to the miminal energy gap in the
+continuum, we se a monotnous behavior.
+
+Here I've ploted it on a log-log scale and we can tell, that the shift
+follows a power law in coupling strength. It is basically proportional
+to the coupling matrix elements which are proportional to the square root.
+#+begin_src jupyter-julia
+  let
+      p = plot(xlabel="J", ylabel="lamb shift relative to minimum continuum spacing")
+      solution(J_rel) = WalkSolution(0, ModelParameters(prototype.v, prototype.u, 0, true, J_rel, spectral_density.α, spectral_density.ω_c, 100, linear_energy_distribution, 0))
+      shift(J_rel) = relative_lamb_shift(solution(J_rel))
+
+      plot!(shift, 0.01, 10, xscale=:log10, yscale=:log10, label="Lamb Shift")
+      plot!(x->1000*sqrt(x), 0.01, 10, xscale=:log10, yscale=:log10, label="sqrt")
+
+      p
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/92c6c09f508779d19ae2e1c50f31d852178156e9.svg]]
+
+* Compensating the Lamb Shift
+Aparrently it is not trivial to close the gap at finite cuping
+strengths. Maybe I'm misidentifying the isolated level though.
+#+begin_src jupyter-julia
+  let
+      p = plot(xlabel="ε shift", ylabel="relative lamb shift")
+      solution(ε_shift, J_rel) = WalkSolution(0, ModelParameters(prototype.v, prototype.u, 0, true, spectral_density.J * J_rel, spectral_density.α, spectral_density.ω_c, 100, linear_energy_distribution, ε_shift))
+      shift(ε_shift, J_rel) = lamb_shift(solution(ε_shift, J_rel))
+
+      for J_rel in [1, 1e-2, 1e-3, 1e-4]
+          norm = shift(0, J_rel)
+          plot!(e -> shift(e, J_rel) / norm, -.2, .1, label="J_rel = $(J_rel)")
+      end
+      p
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/5e2ff0a770456d456c90780f5a54b00240289fe0.svg]]
+
+So we can only (reasonably) remove the lamb shift for weak coupling.
+

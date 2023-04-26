@@ -499,7 +499,7 @@ walk of [cite:@Ricottone2020] for a /finite/ bath.
 
 #+DOWNLOADED: screenshot @ 2023-04-25 20:37:30
 #+ATTR_ORG: :width 500
-[[attachment:2023-04-25_20-37-30_screenshot.png]]
+\[[attachment:2023-04-25_20-37-30_screenshot.png]]
 
 #+DOWNLOADED: screenshot @ 2023-04-25 20:35:59
 #+ATTR_ORG: :width 500
@@ -519,6 +519,8 @@ walk of [cite:@Ricottone2020] for a /finite/ bath.
    least in the parameter regeime similar to [cite:@Ricottone2020] the
    born approximation is inconsisent.
 
+5. Implemented alternative solution to exact diag -> match up ->
+   pretty sure, that numerics ~ ok
 
 * Born vs Exact for a finite Bath
 Let us plot the relative /difference/ in the phase diagram for the
@@ -663,3 +665,35 @@ These timescales are nonsensical, as they force the strong coupling limit.
 : (2π) / max_g = 628.3185307179584
 [[file:./.ob-jupyter/c69c009b7be0235f8d0a037991bdf1dc7f58514f.svg]]
 :END:
+
+
+** Strong Coupling Limit
+For strong coupling, we encounter the effective two-level dynamics of
+the Wiegner-Weisskopf model.
+
+#+begin_src jupyter-julia
+  plot_analytic_phase_diagram(10, ω_c=3, coupling_strength=100, num_bath_modes=10, T=1)
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+: maximum(displacement) = 0.5579749047930285
+: (2π) / min_e = 40.83175252049179
+: (2π) / max_g = 1.9869176531592214
+[[file:./.ob-jupyter/0573fbbfa5ba73043b819f280a20926638104464.svg]]
+:END:
+*** This Doesn't work in Born (Wrong Displacement Magnitude)
+Surprisingly, the pricture looks similar, but the scales don't match
+up!
+#+begin_src jupyter-julia
+  plot_analytic_phase_diagram(10, ω_c=3, coupling_strength=100, num_bath_modes=10, T=1, integrand=integrand_born)
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+: maximum(displacement) = 0.9933459885071911
+: (2π) / min_e = 40.83175252049179
+: (2π) / max_g = 1.9869176531592214
+[[file:./.ob-jupyter/83cb050124268dd8ff63f55ac1fee11273b1c36d.svg]]
+:END:
+* Hunting for the Lamb Shift
