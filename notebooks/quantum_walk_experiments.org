@@ -756,6 +756,7 @@ level, we can understand this limit.
 #+RESULTS:
 [[file:./.ob-jupyter/42483bc5fd5cf5476388b0b04c594ac548da7dce.svg]]
 
+
 We see that irrespective of \(k\) we get pure amplitude one
 oscillations for \(ρ_A\). This is due to the fact, that the system
 becomes an effective two level system. Further we get a universal
