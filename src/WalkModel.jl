@@ -201,7 +201,7 @@ non_a_weight(t::Real, sol::WalkSolution)::Real = (1/(2π) - abs2(sol(t)[1]))
 """Return `N` energies distributed according to ``exp(-ε/ω_c)`` in the
    interval `(0, J.Δ)`."""
 function exponential_energy_distribution(J::OhmicSpectralDensity, N::Integer, ε_0::Real=0)
-    ω_c = J.ω_c
+    ω_c = -J.ω_c / log(1 / (2N))
     xk = -ω_c * log.(1 .- collect(0:N) / (N))
     ε = -ω_c * log.(1 .- (2 * collect(1:N) .- 1) / (2 * N))
 
