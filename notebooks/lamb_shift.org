@@ -73,7 +73,7 @@ Now we can diagonalize and plot the density of states.
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/d43dca6441e82efb3df8c9de85b0767961f17cfe.svg]]
+[[file:./.ob-jupyter/1d3535664e13e82243b23f6f68a8835aa64184ad.svg]]
 
 We see a nice gap :).
 
@@ -90,7 +90,7 @@ Let's look at the eigenstates.
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/644876c8925f9c174fcd12ff60910ab0bdf93399.svg]]
+[[file:./.ob-jupyter/897b162e337766b1146830a361af6f82265db8c3.svg]]
 Here we have one isolated state.
 
 
@@ -107,7 +107,7 @@ Here we have one isolated state.
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/c321c90003a54d844ff92a35f54596dfe3ca3739.svg]]
+[[file:./.ob-jupyter/80d4151649e9e770aae1f832bc02561d7c3d35a9.svg]]
 In the strong coupling regime we get two nicely separated states with
 big A component.
 
@@ -129,7 +129,7 @@ only \(k\) dependence of the problem.
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/5f8d09d7983728e94c6bddb30768aa04365b08df.svg]]
+[[file:./.ob-jupyter/4bc3bcebc441ef9aacdb3c09f900e5f297c54cd8.svg]]
 
 
 This also holds for stronger coupling.
@@ -142,7 +142,7 @@ This also holds for stronger coupling.
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/962b5cbbac648105cc9bfc7435e85a79c037fb22.svg]]
+[[file:./.ob-jupyter/cde810a8c1dd609cc05aa416b756609fa0b0e87e.svg]]
 
 
 Or without the SW transform.
@@ -155,7 +155,7 @@ Or without the SW transform.
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/530d907560c73b58a3ef41cb87fcdd7af941d130.svg]]
+[[file:./.ob-jupyter/48221a93faf18b18d90711f11081bf294ed35174.svg]]
 
 ** α - Dependence
 We find a very minor dependence on α.
@@ -172,7 +172,7 @@ We find a very minor dependence on α.
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/cfdaec0cd0d164b6c607cde74e35072c5ddd5311.svg]]
+[[file:./.ob-jupyter/96f444cf830c49bc1c9b2dbfe991c5c933b8940d.svg]]
 
 With increasing coupling strength this dependence is more and more
 sensitive, but it amounts to only a few percent.
@@ -187,7 +187,7 @@ sensitive, but it amounts to only a few percent.
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/48e42f157dc3ba1738aa719023f19dfe833a9ff4.svg]]
+[[file:./.ob-jupyter/d53c3519ab96d7aa7948cce411ecae5dacc4ff48.svg]]
 
 We see that we approach a limit, but the relative difference is not
 too great. In fact, here it is sub percent. We shoudl be able to
@@ -214,7 +214,7 @@ to the coupling matrix elements which are proportional to the square root.
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/625d710fb328dee023356e250e0c4d457320af2d.svg]]
+[[file:./.ob-jupyter/844d0fc4511ae7b713bb8ae0794a3a5a489485f4.svg]]
 
 In the limit of weak coupling the the lamb shift seems to reach a
 constant value.
@@ -225,19 +225,53 @@ strengths. Maybe I'm misidentifying the isolated level though.
 #+begin_src jupyter-julia
   let
       p = plot(xlabel="ε shift", ylabel="relative lamb shift")
-      solution(ε_shift, J_rel) = WalkSolution(0, ModelParameters(setproperties(full_prototype, ε_shift = ε_shift, J = J_rel, N=500)))
+      solution(ε_shift, J_rel) = WalkSolution(0, ModelParameters(setproperties(full_prototype, ε_shift = ε_shift, J = J_rel)))
       shift(ε_shift, J_rel) = lamb_shift(solution(ε_shift, J_rel))
 
       for J_rel in [.1, 1e-2, 1e-3, 1e-4]
           norm = shift(0, J_rel)
-          plot!(e -> shift(e, J_rel) / norm, -.1, .01, label="J_rel = $(J_rel)")
+          plot!(e -> shift(e, J_rel) / norm, -.5, .01, label="J_rel = $(J_rel)")
       end
       p
   end
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/064a9a72539318c65db3c7fc7c2316feb9f17805.svg]]
+[[file:./.ob-jupyter/6372017e90b4ae7c7392995930c808f4653aee62.svg]]
 
 So we can only (reasonably) remove the lamb shift for weak coupling.
 
+
+
+#+begin_src jupyter-julia
+  let
+      p = plot(xlabel="ε shift", ylabel="relative lamb shift")
+      solution(ε_shift, J_rel) = WalkSolution(0, ModelParameters(setproperties(full_prototype, ε_shift = ε_shift, J = J_rel, N=10)))
+      shift(ε_shift, J_rel) = lamb_shift(solution(ε_shift, J_rel))
+
+      for J_rel in [.1, 1e-2, 1e-3, 1e-4]
+          norm = shift(0, J_rel)
+          plot!(e -> shift(e, J_rel) / norm, -.5, .01, label="J_rel = $(J_rel)")
+      end
+      p
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/58f15c22e7438b005a8ad9972e53833f231b3864.svg]]
+
+Interestingly, the optimal shift is dependent on the number of bath levels.
+
+The spectrum corrected for the lamb shift looks like
+#+begin_src jupyter-julia
+  let
+      H = hamiltonian(0, ModelParameters(@set full_prototype.ε_shift = -.04))
+      ψ_A = [1; zeros(num_bath_modes(prototype))]
+      energies = eigvals(H)
+      overlaps = (ψ_A' * eigvecs(H) .|> abs)'
+      bar(energies, overlaps, xlabel="E", ylabel="Overlap with A")
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/645bc720bdd6205f72273006769bda3888e4c361.svg]]
