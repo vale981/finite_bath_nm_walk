@@ -14,17 +14,16 @@
 #+end_src
 
 #+RESULTS:
-: [32m[1m  Activating[22m[39m project at `~/Documents/org/roam/data/c4/5097d2-2599-426d-82db-6ecfb5207151`
 
 
 #+begin_src jupyter-julia
   (prototype, spectral_density) = let
       v = 1
       u = .5
-      J = 100
+      J = .1
       α = 0.5
-      ω_c = 30
-      N = 500
+      ω_c = 1
+      N = 50
       sd = OhmicSpectralDensity(J, ω_c, α)
       ModelParameters(v, u, J, α, ω_c, N, linear_energy_distribution), sd
   end;
@@ -46,12 +45,12 @@ Let's start with definitng our system.
 Now we can diagonalize and plot the density of states.
 #+begin_src jupyter-julia
   sol = WalkSolution(0, prototype)
-  histogram(sol.energies[begin+1:end], label="Continuum", bins=100)
+  histogram(sol.energies[begin+1:end], label="Continuum", bins=10)
   vline!(sol.energies[begin:begin + 1], linewidth=2, label="Isolated")
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/a26200424c08cf78c6cbda54fc2709dc110ba750.svg]]
+[[file:./.ob-jupyter/d6896c0f5d429aa8236d7e67b02273894e55cbae.svg]]
 
 We see a nice gap :).
 
@@ -72,7 +71,7 @@ only \(k\) dependence of the problem.
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/a5b73faa0240f51afd8473224c5a5a7981d1cb32.svg]]
+[[file:./.ob-jupyter/a4dc0376eeb1545a366a96730ae3ce3c7e0ecf2e.svg]]
 
 
 This also holds for stronger coupling.
@@ -85,7 +84,7 @@ This also holds for stronger coupling.
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/f804f92cf55a13d279af103a19ec339266d5ca98.svg]]
+[[file:./.ob-jupyter/ed32959f5bdd0fdef6738978931e1e3fda3ce3c6.svg]]
 
 
 Or without the SW transform.
@@ -98,7 +97,7 @@ Or without the SW transform.
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/b48ce91ffd877416920aea0443e7f4f6e4742252.svg]]
+[[file:./.ob-jupyter/d890da64f1b840edaa61813be18053bab7289ebd.svg]]
 
 ** α - Dependence
 We find a very minor dependence on α.
@@ -115,7 +114,7 @@ We find a very minor dependence on α.
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/de0bd31d50b235ed13d0d181a5916be9b6217c9c.svg]]
+[[file:./.ob-jupyter/c7c4269e288d0e5da520c29eea6914b98e89f7bc.svg]]
 
 With increasing coupling strength this dependence is more and more
 sensitive, but it amounts to only a few percent.
@@ -130,7 +129,7 @@ sensitive, but it amounts to only a few percent.
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/5aefb40946c3d22d29311d9ba9241652112493aa.svg]]
+[[file:./.ob-jupyter/c4178d81c91bf70628585fa34f58a152b2455fb2.svg]]
 Looks like an exponential decrease.
 
 This also holds when I take the bath modes to be linearly spaced.
@@ -143,7 +142,7 @@ This also holds when I take the bath modes to be linearly spaced.
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/e042588d72a621314ed13f5835cd1c8488502278.svg]]
+[[file:./.ob-jupyter/009b9e2b71abf6a3fb996f04c0f34049c9cd427e.svg]]
 We see that we appriach a limit, but the relative difference is not
 too great. In fact, here it is sub percent. We shoudl be able to
 obtain the lamb shift from the continuum limit.
@@ -170,7 +169,7 @@ to the coupling matrix elements which are proportional to the square root.
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/92c6c09f508779d19ae2e1c50f31d852178156e9.svg]]
+[[file:./.ob-jupyter/1169ca7b4b26c5e8f1eb3349deedaa4625fc1509.svg]]
 
 * Compensating the Lamb Shift
 Aparrently it is not trivial to close the gap at finite cuping
@@ -190,7 +189,7 @@ strengths. Maybe I'm misidentifying the isolated level though.
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/5e2ff0a770456d456c90780f5a54b00240289fe0.svg]]
+[[file:./.ob-jupyter/015c228be5e4b4053c8d8c3fccfc412d2f0ab796.svg]]
 
 So we can only (reasonably) remove the lamb shift for weak coupling.
 
