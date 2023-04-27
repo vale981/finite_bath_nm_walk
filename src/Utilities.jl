@@ -6,9 +6,10 @@ export plot_analytic_phase_diagram_born_v_exact
 
 using ..WalkModel
 import Plots: heatmap, hline!, vline!
+import Statistics: mean
 
 function plot_analytic_phase_diagram(grid_N::Integer=50; α_limits::Tuple{Real,Real}=(0, 2), u_limits::Tuple{Real,Real}=(0, 2),
-    num_bath_modes::Integer=200, bath_discretization::Function=exponential_energy_distribution, coupling_strength::Real=0.01, ω_c::Real=1, ε_min::Real=0, integrand=integrand_diagonalization, T::Real=0)
+    num_bath_modes::Integer=200, bath_discretization::Function=exponential_energy_distribution, coupling_strength::Real=0.01, ω_c::Real=1, ε_min::Real=0, integrand=integrand_diagonalization, T::Real=0, normalize::Bool = true)
     displacement = Array{Float64}(undef, grid_N, grid_N)
 
     vv = 1
@@ -22,7 +23,7 @@ function plot_analytic_phase_diagram(grid_N::Integer=50; α_limits::Tuple{Real,R
             α = αs[j]
             u = us[i]
             sd = OhmicSpectralDensity((ω_c), coupling_strength, α)
-            ε, g = bath_discretization(sd, num_bath_modes)
+            ε, g = bath_discretization(sd, num_bath_modes, normalize)
 
             if ε[begin] < min_e
                 min_e = ε[begin]
@@ -44,7 +45,7 @@ function plot_analytic_phase_diagram(grid_N::Integer=50; α_limits::Tuple{Real,R
 
     @show maximum(displacement)
 
-    p = heatmap(αs, us, 2*displacement, xlabel=raw"$α$", ylabel=raw"$u$")
+    p = heatmap(αs, us, displacement, xlabel=raw"$α$", ylabel=raw"$u$", title=raw"$\langle m\rangle$")
     vline!([1], label=false, color=:white)
     hline!([1], label=false, color=:white)
 
@@ -64,7 +65,7 @@ function plot_analytic_phase_diagram_born_v_exact(grid_N::Integer=50, α_limits:
             α = αs[j]
             u = us[i]
             sd = OhmicSpectralDensity((ω_c * vv), coupling_strength, α)
-            ε, g = bath_discretization(sd, num_bath_modes, ε_min * vv)
+            ε, g = bath_discretization(sd, num_bath_modes)
             ε .-= ε_min
             params = ModelParameters(v=vv, u=u, ε=ε, g=g, sw_approximation=true)
 
@@ -79,8 +80,8 @@ function plot_analytic_phase_diagram_born_v_exact(grid_N::Integer=50, α_limits:
         end
     end
 
-    @show maximum(displacement)
-    p = heatmap(αs, us, displacement, xlabel=raw"$α$", ylabel=raw"$u$")
+    @show mean(displacement)
+    p = heatmap(αs, us, displacement, xlabel=raw"$α$", ylabel=raw"$u$", title=raw"$(\langle m\rangle - \langle m_\mathrm{Born}\rangle)/\langle m\rangle$")
     vline!([1], label=false, color=:white)
     hline!([1], label=false, color=:white)
 

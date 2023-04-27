@@ -96,11 +96,12 @@ struct OhmicSpectralDensity
     α::Real
 end
 
-(J::OhmicSpectralDensity)(ε::Real) = if ε < J.ω_c
-    J.J * ε^J.α
-else
-    0
-end
+(J::OhmicSpectralDensity)(ε::Real) =
+    if ε < J.ω_c
+        J.J * ε^J.α
+    else
+        0
+    end
 
 struct OhmicSpectralDensityIntegral
     ω_c::Real
@@ -110,11 +111,12 @@ end
 
 OhmicSpectralDensityIntegral(J::OhmicSpectralDensity) = OhmicSpectralDensityIntegral(J.ω_c, J.J, J.α)
 
-(J::OhmicSpectralDensityIntegral)(ε::Real) = if ε < J.ω_c
-    J.J * ε^(J.α + 1)/(J.α+1)
-else
-    J.J * J.ω_c^(J.α + 1)/(J.α+1)
-end
+(J::OhmicSpectralDensityIntegral)(ε::Real) =
+    if ε < J.ω_c
+        J.J * ε^(J.α + 1) / (J.α + 1)
+    else
+        J.J * J.ω_c^(J.α + 1) / (J.α + 1)
+    end
 
 """The winding phase of the hopping amplitude.
    The arguments are as in [`v`](@ref)."""
@@ -195,12 +197,12 @@ end
 #                                                       sol(t)[2:end]
 #                                                   end).|> abs2 |> sum
 a_weight(t::Real, sol::WalkSolution)::Real = sol.vectors[1, :] ⋅ (exp.(complex.(0, -sol.energies * t))) |> abs2
-non_a_weight(t::Real, sol::WalkSolution)::Real = (1/(2π) - abs2(sol(t)[1]))
+non_a_weight(t::Real, sol::WalkSolution)::Real = (1 / (2π) - abs2(sol(t)[1]))
 
 
 """Return `N` energies distributed according to ``exp(-ε/ω_c)`` in the
    interval `(0, J.Δ)`."""
-function exponential_energy_distribution(J::OhmicSpectralDensity, N::Integer, ε_0::Real=0)
+function exponential_energy_distribution(J::OhmicSpectralDensity, N::Integer, ε_0::Real=0, normalize::Bool=true)
     ω_c = -J.ω_c / log(1 / (2N))
     xk = -ω_c * log.(1 .- collect(0:N) / (N))
     ε = -ω_c * log.(1 .- (2 * collect(1:N) .- 1) / (2 * N))
@@ -212,14 +214,16 @@ function exponential_energy_distribution(J::OhmicSpectralDensity, N::Integer, ε
     J_int = OhmicSpectralDensityIntegral(J)
     g = ((J_int.(xk[2:end]) - J_int.(xk[1:end-1])))
 
-    g /= sum(abs.(g))
-    g *= J.J
+    if normalize
+        g /= sum(abs.(g))
+        g *= J.J
+    end
 
     ε, (sqrt.(g))
 end
 
 
-function linear_energy_distribution(J::OhmicSpectralDensity, N::Integer)
+function linear_energy_distribution(J::OhmicSpectralDensity, N::Integer, normalize::Bool=true)
     Δ = J.ω_c
     xk = collect(LinRange(0, Δ, N + 1))
     ε = Δ * ((2 * collect(1:N) .- 1) / (2 * N))
@@ -228,8 +232,10 @@ function linear_energy_distribution(J::OhmicSpectralDensity, N::Integer)
     J_int = OhmicSpectralDensityIntegral(J)
     g = ((J_int.(xk[2:end]) - J_int.(xk[1:end-1])))
 
-    g /= sum(abs.(g))
-    g *= J.J
+    if normalize
+        g /= sum(abs.(g))
+        g *= J.J
+    end
 
     ε, sqrt.(g)
 end
