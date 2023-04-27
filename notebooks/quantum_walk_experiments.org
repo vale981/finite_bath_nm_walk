@@ -696,4 +696,3 @@ up!
 : (2π) / max_g = 1.9869176531592214
 [[file:./.ob-jupyter/83cb050124268dd8ff63f55ac1fee11273b1c36d.svg]]
 :END:
-* Hunting for the Lamb Shift

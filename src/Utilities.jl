@@ -7,7 +7,7 @@ export plot_analytic_phase_diagram_born_v_exact
 using ..WalkModel
 import Plots: heatmap, hline!, vline!
 
-function plot_analytic_phase_diagram(grid_N::Integer=50, α_limits::Tuple{Real,Real}=(0, 2), u_limits::Tuple{Real,Real}=(0, 2);
+function plot_analytic_phase_diagram(grid_N::Integer=50; α_limits::Tuple{Real,Real}=(0, 2), u_limits::Tuple{Real,Real}=(0, 2),
     num_bath_modes::Integer=200, bath_discretization::Function=exponential_energy_distribution, coupling_strength::Real=0.01, ω_c::Real=1, ε_min::Real=0, integrand=integrand_diagonalization, T::Real=0)
     displacement = Array{Float64}(undef, grid_N, grid_N)
 
@@ -21,8 +21,8 @@ function plot_analytic_phase_diagram(grid_N::Integer=50, α_limits::Tuple{Real,R
         for j in 1:grid_N
             α = αs[j]
             u = us[i]
-            sd = OhmicSpectralDensity((ω_c * vv), coupling_strength, α)
-            ε, g = bath_discretization(sd, num_bath_modes, ε_min * vv)
+            sd = OhmicSpectralDensity((ω_c), coupling_strength, α)
+            ε, g = bath_discretization(sd, num_bath_modes)
 
             if ε[begin] < min_e
                 min_e = ε[begin]
@@ -43,9 +43,8 @@ function plot_analytic_phase_diagram(grid_N::Integer=50, α_limits::Tuple{Real,R
     end
 
     @show maximum(displacement)
-    @show 2π/min_e
-    @show 2π/max_g
-    p = heatmap(αs, us, displacement, xlabel=raw"$α$", ylabel=raw"$u$")
+
+    p = heatmap(αs, us, 2*displacement, xlabel=raw"$α$", ylabel=raw"$u$")
     vline!([1], label=false, color=:white)
     hline!([1], label=false, color=:white)
 

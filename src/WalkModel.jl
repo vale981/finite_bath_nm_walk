@@ -34,6 +34,7 @@ import Statistics: mean
 import SpecialFunctions: gamma
 import Polynomials: Polynomial, fromroots, coeffs
 import PolynomialRoots: roots
+import LinearAlgebra: ⋅
 
 """The parameters required to simulate the model, agnostic of how they
 are arrived at."""
@@ -95,8 +96,11 @@ struct OhmicSpectralDensity
     α::Real
 end
 
-(J::OhmicSpectralDensity)(ε::Real) = ε^J.α * J.J * exp(-ε / J.ω_c) / (gamma(1 + J.α) * J.ω_c^(1 + J.α))
-
+(J::OhmicSpectralDensity)(ε::Real) = if ε < J.ω_c
+    J.J * ε^J.α
+else
+    0
+end
 
 struct OhmicSpectralDensityIntegral
     ω_c::Real
@@ -106,7 +110,11 @@ end
 
 OhmicSpectralDensityIntegral(J::OhmicSpectralDensity) = OhmicSpectralDensityIntegral(J.ω_c, J.J, J.α)
 
-(J::OhmicSpectralDensityIntegral)(ε::Real) = J.J * J.ω_c^(J.α + 0) * (gamma(J.α + 1) - gamma(1 + J.α, ε / J.ω_c)) / (gamma(1 + J.α) * J.ω_c^(1 + J.α))
+(J::OhmicSpectralDensityIntegral)(ε::Real) = if ε < J.ω_c
+    J.J * ε^(J.α + 1)/(J.α+1)
+else
+    J.J * J.ω_c^(J.α + 1)/(J.α+1)
+end
 
 """The winding phase of the hopping amplitude.
    The arguments are as in [`v`](@ref)."""
@@ -128,7 +136,7 @@ function hamiltonian(k::Real, params::ModelParameters)::Matrix{<:Number}
     H_bath = diagm(0 => params.ε)
 
     if params.sw_approximation
-        g = abs(v_complex) * params.g
+        g = v_complex * params.g
 
         [0 g'
             g H_bath]
@@ -167,7 +175,7 @@ function WalkSolution(k::Real, params::ModelParameters, m_0::Integer=0)
         [exp(-1im * k * m_0); 0; zeros(num_bath_modes(params))]
     end
 
-    coefficients = vectors' * ψ_0
+    coefficients = vectors' * ψ_0 / sqrt(2π)
 
     WalkSolution((coefficients' .* vectors), energies, params)
 end
@@ -186,8 +194,8 @@ end
 #                                                   else
 #                                                       sol(t)[2:end]
 #                                                   end).|> abs2 |> sum
-a_weight(t::Real, sol::WalkSolution)::Real = sol(t)[begin] |> abs2
-non_a_weight(t::Real, sol::WalkSolution)::Real = (1 - abs2(sol(t)[1]) / (2π))
+a_weight(t::Real, sol::WalkSolution)::Real = sol.vectors[1, :] ⋅ (exp.(complex.(0, -sol.energies * t))) |> abs2
+non_a_weight(t::Real, sol::WalkSolution)::Real = (1/(2π) - abs2(sol(t)[1]))
 
 
 """Return `N` energies distributed according to ``exp(-ε/ω_c)`` in the
@@ -211,13 +219,11 @@ function exponential_energy_distribution(J::OhmicSpectralDensity, N::Integer, ε
 end
 
 
-function linear_energy_distribution(J::OhmicSpectralDensity, N::Integer, ε_0::Real=0)
-    xk = collect(LinRange(0, J.ω_c, N + 1))
-    ε = J.ω_c * ((2 * collect(1:N) .- 1) / (2 * N))
-
-    if ε_0 > 0
-        ε[1] = ε_0
-    end
+function linear_energy_distribution(J::OhmicSpectralDensity, N::Integer)
+    Δ = J.ω_c
+    xk = collect(LinRange(0, Δ, N + 1))
+    ε = Δ * ((2 * collect(1:N) .- 1) / (2 * N))
+    # ε = Δ * collect(LinRange(0, Δ, N)) + Δ/(2N)
 
     J_int = OhmicSpectralDensityIntegral(J)
     g = ((J_int.(xk[2:end]) - J_int.(xk[1:end-1])))
@@ -238,18 +244,9 @@ function mean_displacement(t::Real, params::ModelParameters, m_0::Integer=0)
     end
 
     m, _ = hquadrature_v(integrand, 0, π, reltol=1e-2, abstol=1e-2)
-    m / (π)
+    2m
 end
 
-
-function time_averaged_displacement(t::Tuple{Real,Real}, params::ModelParameters, m_0::Integer=0)
-    function integrand(t)
-        mean_displacement(t, params, m_0)
-    end
-
-    m, _ = hquadrature(integrand, t[1], t[2], reltol=1e-2, abstol=1e-2)
-    m / (t[2] - t[1])
-end
 
 
 function limit(f::Function, x0::Real, x1::Real, δ::Real=1e-2)
@@ -275,14 +272,14 @@ end
 
 ρ_A(k::Real, params::ModelParameters) = 1 / 2π * 1 / (1 + Σ_A(k, params))
 
-function analytic_time_averaged_displacement(params::ModelParameters)
-    function integrand(k)
-        dϕ(k, params) * (1 / (2π) - ρ_A(k, params))
-    end
+# function analytic_time_averaged_displacement(params::ModelParameters)
+#     function integrand(k)
+#         dϕ(k, params) * (1 / (2π) - ρ_A(k, params))
+#     end
 
-    m, _ = hquadrature(integrand, 0, π, reltol=1e-5, abstol=1e-5)
-    2m
-end
+#     m, _ = hquadrature(integrand, 0, π, reltol=1e-5, abstol=1e-5)
+#     2m
+# end
 
 function construct_residue_poly(k::Real, params::ModelParameters)
     function elementary_poly(ε)
@@ -342,7 +339,7 @@ function ρ_A_mean(T::Real, frequencies::Vector{<:Number}, residues::Vector{<:Nu
 
             ω_i, ω_j = frequencies[[i, j]]
             diff = complex(0, ω_j - ω_i)
-            mean += conj(residues[i]) * residues[j] * (exp(diff) - 1) / diff
+            mean += conj(residues[i]) * residues[j] * (exp(diff * T) - 1) / diff
         end
     end
 
@@ -367,17 +364,16 @@ function ρ_A_mean(T::Real, solution::WalkSolution)
             end
 
             ω_i, ω_j = solution.energies[[i, j]]
-            diff = complex(0, ω_j - ω_i)
+            diff = complex(0, (ω_j - ω_i) * T)
             mean += conj(residues[i]) * residues[j] * (exp(diff) - 1) / diff
         end
     end
 
-    mean /= T * 2π
     mean += ρ_A_mean(solution)
     real(mean)
 end
 
-ρ_A_mean(solution::WalkSolution) = sum(abs2.(solution.vectors[1, :])) / (2π)
+ρ_A_mean(solution::WalkSolution) = sum(abs2.(solution.vectors[1, :]))
 
 
 function analytic_time_averaged_displacement(T::Real, params::ModelParameters, integrand::Function)

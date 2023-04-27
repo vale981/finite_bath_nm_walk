@@ -1,0 +1,246 @@
+#+PROPERTY: header-args :session finite_bath_debug :kernel julia-1.8 :pandoc yes :async yes
+
+#+begin_src jupyter-julia
+  using DrWatson
+  using Revise
+  using Plots
+  using LinearAlgebra
+  @quickactivate "discrete_walk"
+
+  Revise.includet(srcdir("WalkModel.jl"))
+  using .WalkModel
+  Revise.includet(srcdir("Utilities.jl"))
+  using .Utilities
+#+end_src
+
+#+RESULTS:
+: [32m[1m  Activating[22m[39m project at `~/Documents/org/roam/data/c4/5097d2-2599-426d-82db-6ecfb5207151`
+
+* Mathieu's Implementation                                           :ATTACH:
+:PROPERTIES:
+:ID:       b14a628e-f050-40cc-a37a-010bc341bfb2
+:END:
+Mathieu explicitly calculated the time evolution operator for one time
+step. This is pretty clever ableit no less computationally
+expensive than diagonalization. In I reproduce the way he discretizes
+the bath to obtain results similar to his [[attachment:2022-07-26 - Reservoir Size.pdf][notebook]].
+
+
+#+begin_src jupyter-julia
+  ε = LinRange(0, 1/8, 50) |> collect
+  g = 1/50 * ε .^ (0.5/2)
+  params = ModelParameters(v=.5, u=2, ω=0, g=g, ε=ε, sw_approximation=true)
+#+end_src
+
+#+RESULTS:
+: ModelParameters
+:   v: Float64 0.5
+:   u: Int64 2
+:   ω: Int64 0
+:   ε: Array{Float64}((50,)) [0.0, 0.002551020408163265, 0.00510204081632653, 0.007653061224489796, 0.01020408163265306, 0.012755102040816327, 0.015306122448979591, 0.017857142857142856, 0.02040816326530612, 0.02295918367346939  …  0.10204081632653061, 0.10459183673469388, 0.10714285714285714, 0.1096938775510204, 0.11224489795918367, 0.11479591836734694, 0.11734693877551021, 0.11989795918367346, 0.12244897959183673, 0.125]
+:   g: Array{Float64}((50,)) [0.0, 0.00449478040520827, 0.005345224838248488, 0.005915463685222677, 0.006356579408934371, 0.00672126440078521, 0.007034711503007025, 0.007311104457090247, 0.007559289460184544, 0.007785188030685749  …  0.011303774281185378, 0.011373770035943866, 0.011442496849097029, 0.011510007133853879, 0.011576349979682628, 0.011641571433263968, 0.011705714750024233, 0.011768820619897463, 0.011830927370445355, 0.01189207115002721]
+:   sw_approximation: Bool true
+:
+
+#+begin_src jupyter-julia
+  sol = WalkSolution(0, params)
+#+end_src
+
+#+RESULTS:
+: WalkSolution(ComplexF64[0.2558676322751819 + 0.0im 0.0 + 0.0im … 0.0005573467075263333 + 0.0im 0.10479825771493322 + 0.0im; 0.0 - 0.0im 0.0 + 0.0im … 0.0 - 0.0im 0.0 - 0.0im; … ; -0.023075380802987756 - 0.0im 0.0 + 0.0im … 0.005456678090179181 + 0.0im 0.05417008963942267 + 0.0im; -0.022897791519541372 + 0.0im 0.0 + 0.0im … -0.013464282549108206 - 0.0im 0.058820627293653026 + 0.0im], [-0.07432901075254453, 0.0, 0.002734799610095484, 0.005359633019271892, 0.007966098345609907, 0.010563105526880612, 0.013154100923434442, 0.01574086146797732, 0.018324451613819875, 0.02090557212123398  …  0.1032821972795074, 0.10587119430698838, 0.10846413631350768, 0.11106211836874119, 0.11366675981013001, 0.11628063288661665, 0.11890827804687865, 0.12155921928949853, 0.12426160120188784, 0.15678141056511696], ModelParameters
+:   v: Float64 0.5
+:   u: Int64 2
+:   ω: Int64 0
+:   ε: Array{Float64}((50,)) [0.0, 0.002551020408163265, 0.00510204081632653, 0.007653061224489796, 0.01020408163265306, 0.012755102040816327, 0.015306122448979591, 0.017857142857142856, 0.02040816326530612, 0.02295918367346939  …  0.10204081632653061, 0.10459183673469388, 0.10714285714285714, 0.1096938775510204, 0.11224489795918367, 0.11479591836734694, 0.11734693877551021, 0.11989795918367346, 0.12244897959183673, 0.125]
+:   g: Array{Float64}((50,)) [0.0, 0.00449478040520827, 0.005345224838248488, 0.005915463685222677, 0.006356579408934371, 0.00672126440078521, 0.007034711503007025, 0.007311104457090247, 0.007559289460184544, 0.007785188030685749  …  0.011303774281185378, 0.011373770035943866, 0.011442496849097029, 0.011510007133853879, 0.011576349979682628, 0.011641571433263968, 0.011705714750024233, 0.011768820619897463, 0.011830927370445355, 0.01189207115002721]
+:   sw_approximation: Bool true
+: )
+
+#+begin_src jupyter-julia
+  plot(t->mean_displacement(t, params)*2, 0.1, 200, label="mean displacement")
+  plot!(t->analytic_time_averaged_displacement(t, params)*2, label="time average")
+  plot!(t->a_weight(t, sol) * 2π, label="ρ_A")
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/9bd7d093756deeff7977a467bbbb24d0a91d62a2.svg]]
+
+This is not the ultra strong coupling where we have perfect
+oscillations.
+However, the amplitude is so large that it "forces" the mean to \(1/2\).
+
+** FIG 15                                                           :ATTACH:
+Here I reproudce FIG 15. Compared to the notebook, the coupling
+strength has been doubled.
+#+begin_src jupyter-julia
+    function shift(u, α)
+        ε = LinRange(0, 1/8, 50) |> collect
+        g = 2/50 * ε .^ (α/2)
+        params = ModelParameters(v=.5, u=u, ω=0, g=g, ε=ε, sw_approximation=true)
+
+        2*analytic_time_averaged_displacement(200, params)
+    end
+#+end_src
+
+#+RESULTS:
+: shift (generic function with 1 method)
+
+
+I find good qualtitative agreement.
+#+begin_src jupyter-julia
+  plot(u->shift(u, .5), .2, 4, label="Subohmic", xlabel="u", ylabel=raw"$\langle 2m\rangle$")
+  plot!(u->shift(u, 1.5), .2, 4, label="Superohmic")
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/d2e80cebb669e9793b7d6d5c8a9070fa81eb3eab.svg]]
+
+[[attachment:screen.png][screen.png]]
+
+#+begin_src jupyter-julia
+  ε = LinRange(0, 1/8, 50) |> collect
+  g = 2/50 * ε .^ (0.5/2)
+  maximum(norm(g) / (ε))
+#+end_src
+
+#+RESULTS:
+: 0.0650551336756487
+
+This is not ultra strong but also not weak coupling.
+
+* More Experiments
+Mathieu explicitly calculated the time evolution operator for one time
+step. This is pretty clever.
+
+#+begin_src jupyter-julia
+  sd = OhmicSpectralDensity(1/8, .01/8, 0.5)
+  ε, g = linear_energy_distribution(sd, 50)
+  # ε = LinRange(0, 1/8, 50) |> collect
+  # g = 1/100 * ε .^ (0.5/2)
+  params = ModelParameters(v=.5, u=2, ω=0, g=g, ε=ε, sw_approximation=true)
+#+end_src
+
+#+RESULTS:
+: ModelParameters
+:   v: Float64 0.5
+:   u: Int64 2
+:   ω: Int64 0
+:   ε: Array{Float64}((50,)) [0.00125, 0.00375, 0.00625, 0.00875, 0.01125, 0.01375, 0.01625, 0.01875, 0.02125, 0.02375  …  0.10125, 0.10375, 0.10625, 0.10875, 0.11125, 0.11375, 0.11625, 0.11875, 0.12125, 0.12375]
+:   g: Array{Float64}((50,)) [0.0018803015465431968, 0.0025425314342338544, 0.0028932979575000285, 0.0031485072933992177, 0.0033532371679681175, 0.003526053526956386, 0.003676612577016738, 0.0038106424302807545, 0.0039318463169589835, 0.004042769275485009  …  0.005809456571760306, 0.005844990956506369, 0.005879888802100073, 0.00591417609607344, 0.005947877196586491, 0.005981014968640123, 0.006013610906178752, 0.006045685241814039, 0.006077257045658293, 0.006108344314548033]
+:   sw_approximation: Bool true
+:
+
+#+begin_src jupyter-julia
+  sol = WalkSolution(0, params)
+  #show(stdout, "text/plain", hamiltonian(0, params) .|> abs)
+#+end_src
+
+#+RESULTS:
+: WalkSolution(ComplexF64[0.28668792422958633 + 0.0im 0.0007475101112248128 + 0.0im … 0.0032431413647698525 + 0.0im 0.020648856122820823 + 0.0im; -0.025509688360120148 - 0.0im 0.01716607334553616 + 0.0im … 7.551516884357725e-5 + 0.0im 0.00046489178936728133 + 0.0im; … ; -0.01722781738240418 - 0.0im -5.684331719620071e-5 + 0.0im … 0.02617114975924085 + 0.0im 0.035686886766250474 + 0.0im; -0.017035200415806803 + 0.0im -5.5966918343035615e-5 + 0.0im … -0.02168440569579583 - 0.0im 0.06818937589402396 + 0.0im], [-0.030447353944170863, 0.0013728188057251234, 0.003960792971054519, 0.0065130389495802465, 0.009051791005869891, 0.011582665648891155, 0.0141082528151108, 0.01663001633028416, 0.019148882324316663, 0.021665481058953245  …  0.10195252570627895, 0.10446990468764575, 0.10699027148523335, 0.10951472459800235, 0.11204502372381464, 0.1145842262435152, 0.11713829934189578, 0.11972123853904432, 0.1223796448889576, 0.1265245595537297], ModelParameters
+:   v: Float64 0.5
+:   u: Int64 2
+:   ω: Int64 0
+:   ε: Array{Float64}((50,)) [0.00125, 0.00375, 0.00625, 0.00875, 0.01125, 0.01375, 0.01625, 0.01875, 0.02125, 0.02375  …  0.10125, 0.10375, 0.10625, 0.10875, 0.11125, 0.11375, 0.11625, 0.11875, 0.12125, 0.12375]
+:   g: Array{Float64}((50,)) [0.0018803015465431968, 0.0025425314342338544, 0.0028932979575000285, 0.0031485072933992177, 0.0033532371679681175, 0.003526053526956386, 0.003676612577016738, 0.0038106424302807545, 0.0039318463169589835, 0.004042769275485009  …  0.005809456571760306, 0.005844990956506369, 0.005879888802100073, 0.00591417609607344, 0.005947877196586491, 0.005981014968640123, 0.006013610906178752, 0.006045685241814039, 0.006077257045658293, 0.006108344314548033]
+:   sw_approximation: Bool true
+: )
+
+#+begin_src jupyter-julia
+  Rational.(round.(ε, sigdigits=1))
+  #gcd(Rational.(round.(sol.energies, sigdigits=5)))
+  sol.energies
+#+end_src
+
+#+RESULTS:
+#+begin_example
+  51-element Vector{Float64}:
+   -0.07772938940062163
+    0.0013747812702484818
+    0.0039700284754152215
+    0.006531491764719871
+    0.009080576983888283
+    0.01162248677648553
+    0.014159569367382607
+    0.016693135822005628
+    0.019224011567158195
+    0.0217527590232717
+    0.024279783771117475
+    0.026805391202062545
+    0.0293298193293538
+    ⋮
+    0.09742264016233483
+    0.09995451921244716
+    0.1024888792442025
+    0.10502626708668297
+    0.10756741953105733
+    0.11011336983088449
+    0.11266564495820654
+    0.11522667039038786
+    0.11780073105507527
+    0.12039683335963836
+    0.12304169747001144
+    0.15876230932253657
+#+end_example
+
+#+begin_src jupyter-julia
+  t_rec = π/minimum(abs.(ε))
+#+end_src
+
+#+RESULTS:
+: 2513.2741228718346
+
+#+begin_src jupyter-julia
+  T = t_rec * .25
+  plot(t->mean_displacement(t, params)*2, 0.1, T)
+  plot!(t->analytic_time_averaged_displacement(t, params)*2)
+  plot!(t->a_weight(t, sol) * 2π)
+  #vline!(collect(1:T÷t_rec) * t_rec)
+  # plot!(t->ρ_A_mean(t, sol) * 2π)
+  #mean_displacement(0, params)
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/21ed91a3af280b56f48cbe4369ec1601daa06a1b.svg]]
+
+* Phase Diag
+#+begin_src jupyter-julia
+  plot_analytic_phase_diagram(10, ω_c=1/8, coupling_strength=.01/8, num_bath_modes=5, T=300, bath_discretization=linear_energy_distribution, u_limits=(0, 4))
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+: maximum(displacement) = 0.5468467709473244
+: (2π) / min_e = 502.6548245743669
+: (2π) / max_g = 397.38353063184405
+[[file:./.ob-jupyter/8d577ab52831a1a7b018e11ec8a2ff87a6059265.svg]]
+:END:
+
+
+
+#+begin_src jupyter-julia
+  sd = OhmicSpectralDensity(1/8, .1/2.5, 0.5)
+  ε, g = linear_energy_distribution(sd, 50)
+  bar(ε, g)
+
+  ε = LinRange(0, 1/8, 50) |> collect
+  g = 1/100 * ε .^ (0.5/2)
+
+  bar!(ε, g)
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/c80fe638546902e1bc0e57d925f25a6e7612cc53.svg]]
+
+
+* Findings                                                           :ATTACH:
+:PROPERTIES:
+:ID:       50f2af01-df6a-495c-a3b4-6204fda4b0e9
+:END:
+- M discretizes by evaluationg the SD
+- no normalization is applied to the SD/coupling strength
+- modes are linearly spaced with sharp cutoff and v=.5
+- if i use that, I can reproduce
+#+DOWNLOADED: screenshot @ 2023-04-26 18:00:13
+[[attachment:2023-04-26_18-00-13_screenshot.png]]
+- m has multiplied the mean displacement by two which I have to do too
+  to connect to his results
