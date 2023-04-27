@@ -21,11 +21,11 @@
 Consider the spectral density \(J(ω)=J_α ω^α \eu^{-\iu ω/ω_c}\).
 #+begin_src jupyter-julia
   sd = OhmicSpectralDensity(1, 1, 1)
-  plot(e-> ((sd)(e)), 0, 10)
+  plot(e-> ((sd)(e)), 0, 1)
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/1b4fe0da06107cb6b722df91f2670b1445e4e9a8.svg]]
+[[file:./.ob-jupyter/a9a6208fd80eeb21c4a4756628ec122a55210a05.svg]]
 
 We can either sample energies linearly spaced up to the cutoff.
 #+begin_src jupyter-julia
@@ -38,7 +38,7 @@ We can either sample energies linearly spaced up to the cutoff.
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/1370b69b40c9d1c21a7504b7102ceb24f2d91a2f.svg]]
+[[file:./.ob-jupyter/80809491d02a11572a6e2b60a3e7aa26470352fb.svg]]
 
 Or we take them exponentially spaced.
 #+begin_src jupyter-julia
@@ -51,7 +51,7 @@ Or we take them exponentially spaced.
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/b7188429e89ac868e254b4e682e126c718a1502f.svg]]
+[[file:./.ob-jupyter/46b7030f470cfc4435215010b18700388cfb233e.svg]]
 
 * General Solution
 The behavior is overly sensitive on the coupling strength.
@@ -531,60 +531,97 @@ coupling) approximation.
 For a coupling strength of \(\int_0^\infty J(ω)\dd{ω} = 10^{-4}\) they
 match up reasonably well.
 #+begin_src jupyter-julia
-  plot_analytic_phase_diagram_born_v_exact(10, ω_c=3, coupling_strength=1e-4, num_bath_modes=100)
+  plot_analytic_phase_diagram_born_v_exact(10, ω_c=1/8, coupling_strength=1e-7, num_bath_modes=100, bath_discretization=exponential_energy_distribution)
 #+end_src
 
 #+RESULTS:
 :RESULTS:
-: maximum(displacement) = 0.04218712721312972
-[[file:./.ob-jupyter/4ccfe8e9fd6cd2fbe26b8870fc099be7a318cb81.svg]]
+: mean(displacement) = 0.05950610117641241
+[[file:./.ob-jupyter/0626fba4634f273eaa504efe1d4d99dddcfe309c.svg]]
 :END:
+
+
+The same goes for the linear energy distribution.
+#+begin_src jupyter-julia
+  plot_analytic_phase_diagram_born_v_exact(10, ω_c=1/8, coupling_strength=1e-7, num_bath_modes=100, bath_discretization=linear_energy_distribution)
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+: mean(displacement) = 0.01142777859494308
+[[file:./.ob-jupyter/04896248fe3c0ccf72a18e4e1a250ae3c11da07b.svg]]
+:END:
+
 
 ** Slightly Stronger Coupling
 Less so for stronger coupling \(10^{-2}\). We have a relative
 difference on the order of 100%.
+
 #+begin_src jupyter-julia
-  plot_analytic_phase_diagram_born_v_exact(10, ω_c=3, coupling_strength=1e-2, num_bath_modes=100)
+  plot_analytic_phase_diagram_born_v_exact(10, ω_c=1/8, coupling_strength=1e-6, num_bath_modes=100, bath_discretization=linear_energy_distribution)
 #+end_src
 
 #+RESULTS:
 :RESULTS:
-: maximum(displacement) = 1.1905066336656018
-[[file:./.ob-jupyter/f600fe43c13de765b18611753d0f696fc7b65a23.svg]]
+: mean(displacement) = 0.09643313206990087
+[[file:./.ob-jupyter/b0d7882f87dd93285502dbadd73069df9e8349d4.svg]]
+:END:
+
+#+begin_src jupyter-julia
+  plot_analytic_phase_diagram_born_v_exact(10, ω_c=1/8, coupling_strength=1e-5, num_bath_modes=100, bath_discretization=linear_energy_distribution)
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+: mean(displacement) = 0.48619357997106505
+[[file:./.ob-jupyter/89de8fa6bcab933f655a6c7f30509dbc9f926d61.svg]]
+:END:
+
+#+begin_src jupyter-julia
+  plot_analytic_phase_diagram_born_v_exact(10, ω_c=1/8, coupling_strength=1e-4, num_bath_modes=100, bath_discretization=linear_energy_distribution)
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+: mean(displacement) = 0.8979122945952243
+[[file:./.ob-jupyter/07316cc729041b215e5d7cb8966aba90504a5073.svg]]
 :END:
 
 ** Actual Phase Diagram where Born is Consistent
 #+begin_src jupyter-julia
-  plot_analytic_phase_diagram(10, ω_c=3, coupling_strength=1e-4, num_bath_modes=100)
+  plot_analytic_phase_diagram(10, ω_c=1/8, coupling_strength=1e-7, num_bath_modes=100)
 #+end_src
 
 #+RESULTS:
 :RESULTS:
-: maximum(displacement) = 0.013525833315787555
-[[file:./.ob-jupyter/b0aa691820796d13231fe12be94381d49c505a84.svg]]
+: maximum(displacement) = 0.0798223767905197
+[[file:./.ob-jupyter/84c045b62dae90fee27a3df33056444f2034a80b.svg]]
 :END:
-*** With Born
 
+*** With Born
 Let's see if we can get the phase diagram with this coupling strength.
 #+begin_src jupyter-julia
-  plot_analytic_phase_diagram(10, ω_c=3, coupling_strength=1e-4, num_bath_modes=10_000, integrand=integrand_born)
+  plot_analytic_phase_diagram(10, ω_c=1/8, coupling_strength=1e-7, num_bath_modes=10_000, integrand=integrand_born, bath_discretization=linear_energy_distribution)
 #+end_src
 
 #+RESULTS:
 :RESULTS:
-: maximum(displacement) = 0.5199076517638719
-[[file:./.ob-jupyter/b3e93be61338f3f0267dba1c6be9a42be7ecea78.svg]]
+: maximum(displacement) = 0.6354880760057832
+[[file:./.ob-jupyter/c99035db7e27f5774eae5789efd59563a9d4059c.svg]]
 :END:
+
+Indeed that looks like the way to go.
+
 *** More states
 Maybe with more bath states...
 #+begin_src jupyter-julia
-  plot_analytic_phase_diagram(10, ω_c=3, coupling_strength=1e-4, num_bath_modes=100_000, integrand=integrand_born)
+  plot_analytic_phase_diagram(10, ω_c=1/8, coupling_strength=1e-7, num_bath_modes=100_000, integrand=integrand_born, bath_discretization=linear_energy_distribution)
 #+end_src
 
 #+RESULTS:
 :RESULTS:
-: maximum(displacement) = 0.8966684321759277
-[[file:./.ob-jupyter/4c85d634bd51e2d6a149eecce8fa2e4a69866029.svg]]
+: maximum(displacement) = 0.9362394433299408
+[[file:./.ob-jupyter/a511638f096b31c4cdad05a5e016f114e41a20d1.svg]]
 :END:
 
 Numerically it seems to be hard to approach the continuum limit under
@@ -605,65 +642,54 @@ If we go into the inconsistent regime we get something akin to the
 phase diagram.
 
 #+begin_src jupyter-julia
-  plot_analytic_phase_diagram(10, ω_c=3, coupling_strength=1e-1, num_bath_modes=100_000, integrand=integrand_born)
+  plot_analytic_phase_diagram(10, ω_c=1/8, coupling_strength=1e-3, num_bath_modes=100_000, integrand=integrand_born, bath_discretization=linear_energy_distribution)
 #+end_src
 
 #+RESULTS:
 :RESULTS:
-: maximum(displacement) = 0.9998784332026658
-[[file:./.ob-jupyter/87f2cd036fada5412a4e3b9784351a7d38d612ef.svg]]
+: maximum(displacement) = 0.9999929638665821
+[[file:./.ob-jupyter/b375a7dc064b3217f63d9b162e789c0cb739c0df.svg]]
 :END:
 
-
+That doesn't look too bad. On the flipside, consider stronger coupling:
 #+begin_src jupyter-julia
-  plot_analytic_phase_diagram(10, ω_c=3, coupling_strength=1e-1, num_bath_modes=1000_000, integrand=integrand_born)
+  plot_analytic_phase_diagram(10, ω_c=1/8, coupling_strength=1e-2, num_bath_modes=100_000, integrand=integrand_born, bath_discretization=linear_energy_distribution)
 #+end_src
 
 #+RESULTS:
 :RESULTS:
-: maximum(displacement) = 0.9999878416384433
-[[file:./.ob-jupyter/7a0298da61eea9dfd5472b441a24528cceb7dd57.svg]]
+: maximum(displacement) = 0.9999992963798736
+[[file:./.ob-jupyter/7b05876ba4a296731ce4dac70eb5d415726a2cc3.svg]]
 :END:
+
+Not only are we even more inconsistent: the phase transition goes
+away.
 
 ** Actual Phase Diagram with Exact Diagonalization
+Let's look at the actual phase diagram with exact diagonalization in
+the regeime inconsistent with born.
 #+begin_src jupyter-julia
-  plot_analytic_phase_diagram(10, ω_c=3, coupling_strength=.01, num_bath_modes=100, T=200)
+  plot_analytic_phase_diagram(10, ω_c=1/8, coupling_strength=1e-3, num_bath_modes=100, T=200, bath_discretization=linear_energy_distribution)
 #+end_src
 
 #+RESULTS:
 :RESULTS:
-: maximum(displacement) = 0.33592445031356877
-: (2π) / min_e = 417.83094807422134
-: (2π) / max_g = 628.3185307179584
-[[file:./.ob-jupyter/c159490b17ca83a3d48e1d2d329bab1123e32dd5.svg]]
+: maximum(displacement) = 0.5410406884109586
+[[file:./.ob-jupyter/014f2dd4b87cfca154051e70540a7035fc522265.svg]]
 :END:
 
-These timescales are nonsensical, as they force the strong coupling limit.
+We see that we're hovering around .5 at the extremes. This is because
+we're approaching the strong coupling regeime.
 
-*** No great Difference to Infinite Time
+The finite time scale here does nothing.
 #+begin_src jupyter-julia
-  plot_analytic_phase_diagram(10, ω_c=3, coupling_strength=.01, num_bath_modes=100)
+  plot_analytic_phase_diagram(10, ω_c=1/8, coupling_strength=1e-3, num_bath_modes=100, bath_discretization=linear_energy_distribution)
 #+end_src
 
 #+RESULTS:
 :RESULTS:
-: maximum(displacement) = 0.3375676474704954
-: (2π) / min_e = 417.83094807422134
-: (2π) / max_g = 628.3185307179584
-[[file:./.ob-jupyter/429f35ea7002bad7c37e808f804bb54458d7a16e.svg]]
-:END:
-
-*** Very Short Times
-#+begin_src jupyter-julia
-  plot_analytic_phase_diagram(10, ω_c=3, coupling_strength=.01, num_bath_modes=100, T=1)
-#+end_src
-
-#+RESULTS:
-:RESULTS:
-: maximum(displacement) = 0.008928216085179347
-: (2π) / min_e = 417.83094807422134
-: (2π) / max_g = 628.3185307179584
-[[file:./.ob-jupyter/c69c009b7be0235f8d0a037991bdf1dc7f58514f.svg]]
+: maximum(displacement) = 0.548146047671528
+[[file:./.ob-jupyter/e26d84b63e30a09018ca323a5353c9b2913ce576.svg]]
 :END:
 
 
@@ -672,27 +698,74 @@ For strong coupling, we encounter the effective two-level dynamics of
 the Wiegner-Weisskopf model.
 
 #+begin_src jupyter-julia
-  plot_analytic_phase_diagram(10, ω_c=3, coupling_strength=100, num_bath_modes=10, T=1)
+  plot_analytic_phase_diagram(10, ω_c=1/8, coupling_strength=1e-1, num_bath_modes=100, bath_discretization=linear_energy_distribution)
 #+end_src
 
 #+RESULTS:
 :RESULTS:
-: maximum(displacement) = 0.5579749047930285
-: (2π) / min_e = 40.83175252049179
-: (2π) / max_g = 1.9869176531592214
-[[file:./.ob-jupyter/0573fbbfa5ba73043b819f280a20926638104464.svg]]
+: maximum(displacement) = 0.525045551884446
+[[file:./.ob-jupyter/d5c6e9cdba9148d56901e6dd7e40f7911e91a979.svg]]
 :END:
-*** This Doesn't work in Born (Wrong Displacement Magnitude)
-Surprisingly, the pricture looks similar, but the scales don't match
-up!
+
+If we wouldn't normalize the SD, we'd get a picture similar to the
+phase transition, purely because of the differing coupling strengths.
+I believe this is what happened to Mathieu.
 #+begin_src jupyter-julia
-  plot_analytic_phase_diagram(10, ω_c=3, coupling_strength=100, num_bath_modes=10, T=1, integrand=integrand_born)
+  plot_analytic_phase_diagram(10, ω_c=1/8, coupling_strength=1e-1, num_bath_modes=100, normalize=false, bath_discretization=linear_energy_distribution)
 #+end_src
 
 #+RESULTS:
 :RESULTS:
-: maximum(displacement) = 0.9933459885071911
-: (2π) / min_e = 40.83175252049179
-: (2π) / max_g = 1.9869176531592214
-[[file:./.ob-jupyter/83cb050124268dd8ff63f55ac1fee11273b1c36d.svg]]
+: maximum(displacement) = 0.5443820868588549
+[[file:./.ob-jupyter/e582549640b8bb739126777b670a3193e210a4bf.svg]]
 :END:
+
+
+Surprisingly, the pricture looks similar, but the scales don't match
+up! This is because ρ_A in the born approximation can be negative!
+
+#+begin_src jupyter-julia
+  plot_analytic_phase_diagram(10, ω_c=1/8, coupling_strength=1e-1, num_bath_modes=100, bath_discretization=linear_energy_distribution, integrand=integrand_born)
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+: maximum(displacement) = 0.9999295026508374
+[[file:./.ob-jupyter/1981f52a4d100f12eb52037637cabfe40fc523fe.svg]]
+:END:
+
+
+If we plot what's actually going on on the ρ_A and mean displacement
+level, we can understand this limit.
+#+begin_src jupyter-julia
+  let
+      v = 1
+      u = 2
+      J = 1
+      α = 0.5
+      ω_c = 1/8
+      N = 10
+      sd = OhmicSpectralDensity(J, ω_c, α)
+
+      params = ModelParameters(v, u, J, α, ω_c, N, linear_energy_distribution)
+
+      p = plot(xlabel="t")
+      plot!(t->mean_displacement(t, params), 0.1, 5, label=raw"$\langle m\rangle$", linewidth=2)
+      plot!(t->analytic_time_averaged_displacement(t, params), label=raw"$\langle \bar{m}\rangle$", linewidth=2)
+      for (i, k) in enumerate(LinRange(0, π, 3))
+          solution = WalkSolution(k, params)
+          plot!(t->a_weight(t, solution) * 2π, label="ρ_A, k=$(round(k, sigdigits=2))",color=i+10)
+          plot!(t->ρ_A_mean(t, solution) * 2π, label="ρ_A (mean), k=$(round(k, sigdigits=2))", linestyle=:dash, color=i+10)
+      end
+      p
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/31181da7260ced60e84d69da4eb402d312cd6dcd.svg]]
+
+We see that irrespective of \(k\) we get pure amplitude one
+oscillations for \(ρ_A\). This is due to the fact, that the system
+becomes an effective two level system. Further we get a universal
+behavior for the mean displacement: As the running mean of \(ρ_A\)
+approaches \(1/2\) we just get \(\ev{m} = 1/2 ∫_0^{2π} ∂_k ϕ(k)\dd{k}\).
