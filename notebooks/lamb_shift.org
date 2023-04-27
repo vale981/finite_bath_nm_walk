@@ -21,12 +21,12 @@
   (prototype, spectral_density) = let
       v = 1
       u = .5
-      J = .1
+      J = 100
       α = 0.5
-      ω_c = 3
-      N = 100
+      ω_c = 30
+      N = 500
       sd = OhmicSpectralDensity(J, ω_c, α)
-      ModelParameters(v, u, J, α, ω_c, N), sd
+      ModelParameters(v, u, J, α, ω_c, N, linear_energy_distribution), sd
   end;
 #+end_src
 
@@ -45,13 +45,13 @@ Let's start with definitng our system.
 
 Now we can diagonalize and plot the density of states.
 #+begin_src jupyter-julia
-  sol = WalkSolution(.5, prototype)
-  histogram(sol.energies[begin+1:end], label="Continuum", xlim=(-1, 2), bins=200)
+  sol = WalkSolution(0, prototype)
+  histogram(sol.energies[begin+1:end], label="Continuum", bins=100)
   vline!(sol.energies[begin:begin + 1], linewidth=2, label="Isolated")
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/ab2c0677668a0c329d5493d37a24530f5fc87010.svg]]
+[[file:./.ob-jupyter/a26200424c08cf78c6cbda54fc2709dc110ba750.svg]]
 
 We see a nice gap :).
 

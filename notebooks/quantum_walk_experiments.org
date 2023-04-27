@@ -20,17 +20,17 @@
 * Sampling
 Consider the spectral density \(J(ω)=J_α ω^α \eu^{-\iu ω/ω_c}\).
 #+begin_src jupyter-julia
-  sd = OhmicSpectralDensity(1, 1, 1)
+  sd = OhmicSpectralDensity(1, 1, 2)
   plot(e-> ((sd)(e)), 0, 1)
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/a9a6208fd80eeb21c4a4756628ec122a55210a05.svg]]
+[[file:./.ob-jupyter/bd0724dd87c2189e7e84818db45eb0ecfbf46719.svg]]
 
 We can either sample energies linearly spaced up to the cutoff.
 #+begin_src jupyter-julia
   begin
-      ε, g = linear_energy_distribution(sd, 20)
+      ε, g = linear_energy_distribution(sd, 10)
       plot(e->sd(e), 0, 6, label="J")
       scatter!(ε, sd.(ε), label="J(ε)")
       scatter!(ε, g.^2, label="g")
@@ -38,7 +38,7 @@ We can either sample energies linearly spaced up to the cutoff.
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/80809491d02a11572a6e2b60a3e7aa26470352fb.svg]]
+[[file:./.ob-jupyter/3da5ea92a62ce21339a8f06fde97f61db9593f0b.svg]]
 
 Or we take them exponentially spaced.
 #+begin_src jupyter-julia
@@ -51,7 +51,7 @@ Or we take them exponentially spaced.
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/46b7030f470cfc4435215010b18700388cfb233e.svg]]
+[[file:./.ob-jupyter/8ef0f4d26fec499d2a056a54bee320c217d9625d.svg]]
 
 * General Solution
 The behavior is overly sensitive on the coupling strength.
@@ -512,7 +512,6 @@ walk of [cite:@Ricottone2020] for a /finite/ bath.
 3. Implementing the solution of the weak-coupling equation from
    [cite:@Ricottone2020] -> works somewhat, but only with /many/
    (> 1000) modes
-[[file:./.ob-jupyter/87f2cd036fada5412a4e3b9784351a7d38d612ef.svg]]
 4. Connecting to the case w/o. Born approximation -> next
 
    TL;DR: at
@@ -523,6 +522,9 @@ walk of [cite:@Ricottone2020] for a /finite/ bath.
    pretty sure, that numerics ~ ok
 
 * Born vs Exact for a finite Bath
+:PROPERTIES:
+:ID:       1e4ba795-27f6-4cf1-8f9b-d943975b59bb
+:END:
 Let us plot the relative /difference/ in the phase diagram for the
 average displacement with and without the Born (second order weak
 coupling) approximation.
@@ -530,26 +532,16 @@ coupling) approximation.
 ** Weak Coupling
 For a coupling strength of \(\int_0^\infty J(ω)\dd{ω} = 10^{-4}\) they
 match up reasonably well.
-#+begin_src jupyter-julia
-  plot_analytic_phase_diagram_born_v_exact(10, ω_c=1/8, coupling_strength=1e-7, num_bath_modes=100, bath_discretization=exponential_energy_distribution)
-#+end_src
-
-#+RESULTS:
-:RESULTS:
-: mean(displacement) = 0.05950610117641241
-[[file:./.ob-jupyter/0626fba4634f273eaa504efe1d4d99dddcfe309c.svg]]
-:END:
-
 
 The same goes for the linear energy distribution.
 #+begin_src jupyter-julia
-  plot_analytic_phase_diagram_born_v_exact(10, ω_c=1/8, coupling_strength=1e-7, num_bath_modes=100, bath_discretization=linear_energy_distribution)
+  plot_analytic_phase_diagram_born_v_exact(10, ω_c=1/8, coupling_strength=1e-8, num_bath_modes=100, bath_discretization=linear_energy_distribution)
 #+end_src
 
 #+RESULTS:
 :RESULTS:
-: mean(displacement) = 0.01142777859494308
-[[file:./.ob-jupyter/04896248fe3c0ccf72a18e4e1a250ae3c11da07b.svg]]
+: mean(displacement) = 0.0011685838814726494
+[[file:./.ob-jupyter/1a8d010f3d818f636d1dde45abea5f478593ee41.svg]]
 :END:
 
 
@@ -589,13 +581,13 @@ difference on the order of 100%.
 
 ** Actual Phase Diagram where Born is Consistent
 #+begin_src jupyter-julia
-  plot_analytic_phase_diagram(10, ω_c=1/8, coupling_strength=1e-7, num_bath_modes=100)
+  plot_analytic_phase_diagram(10, ω_c=1/8, coupling_strength=1e-7, num_bath_modes=100, bath_discretization=linear_energy_distribution)
 #+end_src
 
 #+RESULTS:
 :RESULTS:
-: maximum(displacement) = 0.0798223767905197
-[[file:./.ob-jupyter/84c045b62dae90fee27a3df33056444f2034a80b.svg]]
+: maximum(displacement) = 0.022558594105591905
+[[file:./.ob-jupyter/013f9bd9554bab0271fb75a5dd82c180b95ac422.svg]]
 :END:
 
 *** With Born
@@ -621,7 +613,7 @@ Maybe with more bath states...
 #+RESULTS:
 :RESULTS:
 : maximum(displacement) = 0.9362394433299408
-[[file:./.ob-jupyter/a511638f096b31c4cdad05a5e016f114e41a20d1.svg]]
+[[file:./.ob-jupyter/9c875c3f2f66243c04b9d293b8ceb15bfb6d9661.svg]]
 :END:
 
 Numerically it seems to be hard to approach the continuum limit under
@@ -675,7 +667,7 @@ the regeime inconsistent with born.
 #+RESULTS:
 :RESULTS:
 : maximum(displacement) = 0.5410406884109586
-[[file:./.ob-jupyter/014f2dd4b87cfca154051e70540a7035fc522265.svg]]
+[[file:./.ob-jupyter/13f851a3829eda5a4e2c44e4fc40f5f4f885355d.svg]]
 :END:
 
 We see that we're hovering around .5 at the extremes. This is because
@@ -762,10 +754,11 @@ level, we can understand this limit.
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/31181da7260ced60e84d69da4eb402d312cd6dcd.svg]]
+[[file:./.ob-jupyter/42483bc5fd5cf5476388b0b04c594ac548da7dce.svg]]
 
 We see that irrespective of \(k\) we get pure amplitude one
 oscillations for \(ρ_A\). This is due to the fact, that the system
 becomes an effective two level system. Further we get a universal
 behavior for the mean displacement: As the running mean of \(ρ_A\)
-approaches \(1/2\) we just get \(\ev{m} = 1/2 ∫_0^{2π} ∂_k ϕ(k)\dd{k}\).
+approaches \(1/2\) we just get \(\ev{m} = 1/2 ∫_0^{2π} ∂_k
+ϕ(k)\dd{k}\).
