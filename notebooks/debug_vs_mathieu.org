@@ -23,7 +23,7 @@
 Mathieu explicitly calculated the time evolution operator for one time
 step. This is pretty clever ableit no less computationally
 expensive than diagonalization. In I reproduce the way he discretizes
-the bath to obtain results similar to his [[attachment:2022-07-26 - Reservoir Size.pdf][notebook]].
+the bath to obtain results similar to his [[attachment:2022-07-26 - Reservoir Size.pdf][notebook]] ([[attachment:2022-07-25 - Reservoir Size.ipynb][2022-07-25 - Reservoir Size.ipynb]]).
 
 
 #+begin_src jupyter-julia
@@ -57,33 +57,46 @@ the bath to obtain results similar to his [[attachment:2022-07-26 - Reservoir Si
 : )
 
 #+begin_src jupyter-julia
-  plot(t->mean_displacement(t, params)*2, 0.1, 200, label="mean displacement")
+  plot(t->mean_displacement(t, params)*2, 0.1, 100, label="mean displacement")
   plot!(t->analytic_time_averaged_displacement(t, params)*2, label="time average")
   plot!(t->a_weight(t, sol) * 2π, label="ρ_A")
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/9bd7d093756deeff7977a467bbbb24d0a91d62a2.svg]]
+[[file:./.ob-jupyter/06c7699d198d6474fbb07f318db23e31efe363c3.svg]]
+
+#+DOWNLOADED: screenshot @ 2023-04-27 12:17:53
+#+ATTR_ORG: :width 500
+[[attachment:2023-04-27_12-17-53_screenshot.png]]
 
 This is not the ultra strong coupling where we have perfect
 oscillations.
 However, the amplitude is so large that it "forces" the mean to \(1/2\).
 
 ** FIG 15                                                           :ATTACH:
+:PROPERTIES:
+:ID:       275e3783-204c-4dd9-b86a-8fd98abec23d
+:END:
 Here I reproudce FIG 15. Compared to the notebook, the coupling
 strength has been doubled.
 #+begin_src jupyter-julia
-    function shift(u, α)
-        ε = LinRange(0, 1/8, 50) |> collect
-        g = 2/50 * ε .^ (α/2)
-        params = ModelParameters(v=.5, u=u, ω=0, g=g, ε=ε, sw_approximation=true)
+  function shift(u, α, normed=false)
+      ε = LinRange(0, 1/8, 50) |> collect
+      g = 2/50 * ε .^ (α/2)
 
-        2*analytic_time_averaged_displacement(200, params)
-    end
+      if normed
+          g ./= norm(g)
+          g .*= .1369
+      end
+
+      params = ModelParameters(v=.5, u=u, ω=0, g=g, ε=ε, sw_approximation=true)
+
+      2*analytic_time_averaged_displacement(200, params)
+  end
 #+end_src
 
 #+RESULTS:
-: shift (generic function with 1 method)
+: shift (generic function with 2 methods)
 
 
 I find good qualtitative agreement.
@@ -101,12 +114,25 @@ I find good qualtitative agreement.
   ε = LinRange(0, 1/8, 50) |> collect
   g = 2/50 * ε .^ (0.5/2)
   maximum(norm(g) / (ε))
+  norm(g)
 #+end_src
 
 #+RESULTS:
-: 0.0650551336756487
+: 0.13691450327145455
 
 This is not ultra strong but also not weak coupling.
+
+Let's see if the transition is still there if we normalize the
+coupling.
+#+begin_src jupyter-julia
+  plot(u->shift(u, .5, true), .2, 4, label="Subohmic", xlabel="u", ylabel=raw"$\langle 2m\rangle$")
+  plot!(u->shift(u, 1.5, true), .2, 4, label="Superohmic")
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/55ba9a935accdfe9610772749990305bec8d7dcb.svg]]
+Et voila, pretty similar results in both cases.
+
 
 * More Experiments
 Mathieu explicitly calculated the time evolution operator for one time
