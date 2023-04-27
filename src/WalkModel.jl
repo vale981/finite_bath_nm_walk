@@ -2,6 +2,7 @@ module WalkModel
 """An implementation of the non-markovian quantum walk in k-space with a discrete bath"""
 
 export ModelParameters
+export ExtendedModelParameters
 export v
 export hamiltonian
 export solution
@@ -21,11 +22,14 @@ export exponential_energy_distribution
 export a_weight
 export non_a_weight
 export mean_displacement
-export time_averaged_displacement
 export integrand_born
 export integrand_diagonalization
 export integrand_residue
 export time_scale
+export num_bath_modes
+export Discretization
+export LinearBathDiscretization
+export ExponentialBathDiscretization
 
 using Parameters
 import LinearAlgebra: diagm, eigen
@@ -35,6 +39,11 @@ import SpecialFunctions: gamma
 import Polynomials: Polynomial, fromroots, coeffs
 import PolynomialRoots: roots
 import LinearAlgebra: ⋅
+
+abstract type BathDiscretization end
+abstract type LinearBathDiscretization <: BathDiscretization end
+abstract type ExponentialBathDiscretization <: BathDiscretization end
+
 
 """The parameters required to simulate the model, agnostic of how they
 are arrived at."""
@@ -60,22 +69,43 @@ are arrived at."""
     sw_approximation::Bool = false
 end
 
+"""The parameters required to simulate the model, agnostic of how they
+are arrived at.
+Instead of specifying the bath spectrum and coupling directly, these values are computed later on."""
+@with_kw struct ExtendedModelParameters
+    """Intracell hopping."""
+    v::Real = 1
 
-function ModelParameters(v::Real, u::Real, ω::Real, sw_approximation::Bool, J::Real, α::Real, ω_c::Real, N::Integer, discretization::Function, ε_shift::Real)
-    sd = OhmicSpectralDensity(ω_c, J, α)
-    ε, g = discretization(sd, N)
-    ε .+= ε_shift
-    ModelParameters(v, u, ω, ε, g, sw_approximation)
+    """Ratio of inter to intracell hopping."""
+    u::Real = 0.5
+
+    """The site energy detuning."""
+    ω::Real = 0.1
+
+    J::Real = .01
+    ω_c::Real = 1
+    α::Real = 1
+    N::Integer = 10
+    discretization::Type{<:BathDiscretization} = LinearBathDiscretization
+
+    normalize::Bool = true
+
+    ε_shift::Real = 0
+
+    """Whether the system should simulated in the Schrieffer-Wolff
+       approximation."""
+    sw_approximation::Bool = false
 end
 
-ModelParameters(v::Real, u::Real, ω::Real, sw_approximation::Bool, J::Real, α::Real, ω_c::Real, N::Integer, discretization::Function) = ModelParameters(v, u, ω, sw_approximation, J, α, ω_c, N, discretization, 0)
+function ModelParameters(p::ExtendedModelParameters)
+    ε, g = discretize_bath(p)
 
+    ModelParameters(p.v, p.u, p.ω, ε, g, p.sw_approximation)
+end
 
-ModelParameters(v::Real, u::Real, ω::Real, J::Real, α::Real, ω_c::Real, N::Integer, discretization::Function) = ModelParameters(v, u, ω, false, J, α, ω_c, N, discretization)
-ModelParameters(v::Real, u::Real, J::Real, α::Real, ω_c::Real, N::Integer, discretization::Function) = ModelParameters(v, u, 0, true, J, α, ω_c, N, discretization)
-ModelParameters(v::Real, u::Real, J::Real, α::Real, ω_c::Real, N::Integer) = ModelParameters(v, u, J, α, ω_c, N, exponential_energy_distribution)
-ModelParameters(v::Real, u::Real, ω::Real, J::Real, α::Real, ω_c::Real, N::Integer) = ModelParameters(v, u, ω, J, α, ω_c, N, exponential_energy_distribution)
-
+function convert(::Type{ModelParameters}, p::ExtendedModelParameters)
+   ModelParameters(p)
+end
 
 
 """Returns the number of bath states for the model."""
@@ -95,6 +125,9 @@ struct OhmicSpectralDensity
     J::Real
     α::Real
 end
+
+OhmicSpectralDensity(params::ExtendedModelParameters) = OhmicSpectralDensity(params.ω_c, params.J, params.α)
+convert(::Type{OhmicSpectralDensity}, params::ExtendedModelParameters) = OhmicSpectralDensity(params)
 
 (J::OhmicSpectralDensity)(ε::Real) =
     if ε < J.ω_c
@@ -200,45 +233,39 @@ a_weight(t::Real, sol::WalkSolution)::Real = sol.vectors[1, :] ⋅ (exp.(complex
 non_a_weight(t::Real, sol::WalkSolution)::Real = (1 / (2π) - abs2(sol(t)[1]))
 
 
-"""Return `N` energies distributed according to ``exp(-ε/ω_c)`` in the
-   interval `(0, J.Δ)`."""
-function exponential_energy_distribution(J::OhmicSpectralDensity, N::Integer, ε_0::Real=0, normalize::Bool=true)
+function discretize_bath(scheme::Type{<:BathDiscretization}, J::OhmicSpectralDensity, N::Integer, normalize::Bool = true, ε_shift::Real =0)
+    xk, ε = find_nodes_and_energies(scheme, J, N)
+
+    J_int = OhmicSpectralDensityIntegral(J)
+    g = ((J_int.(xk[2:end]) - J_int.(xk[1:end-1])))
+
+    if normalize
+        g /= sum(abs.(g))
+        g *= J.J
+    end
+
+    ε .+= ε_shift
+
+    ε, sqrt.(g)
+end
+discretize_bath(p::ExtendedModelParameters) = discretize_bath(p.discretization, OhmicSpectralDensity(p), p.N, p.normalize, p.ε_shift)
+
+function find_nodes_and_energies(::Type{LinearBathDiscretization}, J::OhmicSpectralDensity, N::Integer)
+    Δ = J.ω_c
+    xk = collect(LinRange(0, Δ, N + 1))
+    ε = Δ * ((2 * collect(1:N) .- 1) / (2 * N))
+
+    xk, ε
+end
+
+function find_nodes_and_energies(::Type{ExponentialBathDiscretization}, J::OhmicSpectralDensity, N::Integer)
     ω_c = -J.ω_c / log(1 / (2N))
     xk = -ω_c * log.(1 .- collect(0:N) / (N))
     ε = -ω_c * log.(1 .- (2 * collect(1:N) .- 1) / (2 * N))
 
-    if ε_0 > 0
-        ε[1] = ε_0
-    end
-
-    J_int = OhmicSpectralDensityIntegral(J)
-    g = ((J_int.(xk[2:end]) - J_int.(xk[1:end-1])))
-
-    if normalize
-        g /= sum(abs.(g))
-        g *= J.J
-    end
-
-    ε, (sqrt.(g))
+    xk, ε
 end
 
-
-function linear_energy_distribution(J::OhmicSpectralDensity, N::Integer, normalize::Bool=true)
-    Δ = J.ω_c
-    xk = collect(LinRange(0, Δ, N + 1))
-    ε = Δ * ((2 * collect(1:N) .- 1) / (2 * N))
-    # ε = Δ * collect(LinRange(0, Δ, N)) + Δ/(2N)
-
-    J_int = OhmicSpectralDensityIntegral(J)
-    g = ((J_int.(xk[2:end]) - J_int.(xk[1:end-1])))
-
-    if normalize
-        g /= sum(abs.(g))
-        g *= J.J
-    end
-
-    ε, sqrt.(g)
-end
 
 function mean_displacement(t::Real, params::ModelParameters, m_0::Integer=0)
     function integrand(ks, v)
