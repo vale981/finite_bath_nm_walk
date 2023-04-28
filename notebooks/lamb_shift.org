@@ -5,7 +5,8 @@
   using Revise
   using Plots
   using LinearAlgebra
-  using Setfield
+  using Accessors
+  using Statistics
   @quickactivate "discrete_walk"
 
   Revise.includet(srcdir("WalkModel.jl"))
@@ -15,7 +16,6 @@
 #+end_src
 
 #+RESULTS:
-: [32m[1m  Activating[22m[39m project at `~/Documents/org/roam/data/c4/5097d2-2599-426d-82db-6ecfb5207151`
 
 
 #+begin_src jupyter-julia
@@ -26,7 +26,7 @@
       α = 0.5
       ω_c = 1
       N = 100
-      p = ExtendedModelParameters(v, u, 0, J, ω_c, α, N, LinearBathDiscretization, true, 0, true)
+      p = ExtendedModelParameters(v, u, 0, OhmicSpectralDensity(ω_c, J, α), N, LinearBathDiscretization, true, 0, true)
 
       p, ModelParameters(p), OhmicSpectralDensity(p)
   end
@@ -44,37 +44,58 @@
 : 
 
 #+begin_src jupyter-julia
-  function lamb_shift(params::ModelParameters)
-      H = hamiltonian(0, params)
-      ψ_A = [1; zeros(num_bath_modes(params))]
+  function lamb_shift(params::ModelParameters, k::Real = 0, relative::Bool = false)
+      H = hamiltonian(k, params)
+      ψ_A = if params.sw_approximation
+          [1; zeros(num_bath_modes(params))]
+      else
+          [1; zeros(num_bath_modes(params) + 1)]
+      end
+
       energies = eigvals(H)
       ev = eigvecs(H)
-      overlaps = (ψ_A' * ev .|> abs)'
+      overlaps = (ψ_A' * ev .|> abs)[1, :]
       index = argmax(overlaps)
 
       isolated_energy = energies[index]
-      mininum(abs(isolated_energy - energies))
+      energies = deleteat!(energies, index)
+
+      shift = minimum(energies) - isolated_energy
+      if relative
+          shift /= minimum(abs.(energies[begin + 1:end] .- energies[begin:end-1]))
+      end
+
+      shift
   end
-  relative_lamb_shift(sol::WalkSolution) = lamb_shift(sol) / minimum(abs.(sol.energies[begin + 2:end] - sol.energies[begin + 1:end-1]))
+  relative_lamb_shift(args...) = lamb_shift(args..., true)
+
+  lamb_shift(params::ExtendedModelParameters, args...) = lamb_shift(ModelParameters(params), args...)
 #+end_src
 
 #+RESULTS:
-: relative_lamb_shift (generic function with 1 method)
+: lamb_shift (generic function with 5 methods)
 
 * Hunting for the Lamb Shift
+:PROPERTIES:
+:ID:       66063e28-0b0c-4635-89d4-6f7cf1cea4fa
+:END:
 Let's start with definitng our system.
 
 Now we can diagonalize and plot the density of states.
 #+begin_src jupyter-julia
   let
       sol = WalkSolution(0, prototype)
+      print(lamb_shift(full_prototype))
       histogram(sol.energies[begin+1:end], label="Continuum", bins=10)
       vline!(sol.energies[begin:begin + 1], linewidth=2, label="Isolated")
   end
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/9fe95fd36adec21aea019dd3e7940b9d43c402c0.svg]]
+:RESULTS:
+: 0.04460516855585549
+[[file:./.ob-jupyter/d37e5806a1ff43f3ea53997c14e0eaab21b86ba1.svg]]
+:END:
 
 We see a nice gap :).
 
@@ -91,13 +112,13 @@ Let's look at the eigenstates.
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/897b162e337766b1146830a361af6f82265db8c3.svg]]
+[[file:./.ob-jupyter/a6cc1a34d7b7e5bef06b062e76aaed2c61b17dcf.svg]]
 Here we have one isolated state.
 
 
 #+begin_src jupyter-julia
   let
-      params = ModelParameters(@set full_prototype.J = 1)
+      params = ModelParameters(@set full_prototype.spectral_density.J = 1)
 
       H = hamiltonian(0, params)
       ψ_A = [1; zeros(num_bath_modes(prototype))]
@@ -108,12 +129,15 @@ Here we have one isolated state.
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/80d4151649e9e770aae1f832bc02561d7c3d35a9.svg]]
+[[file:./.ob-jupyter/275870ca8f9697b785659577000ea287654e86f9.svg]]
 In the strong coupling regime we get two nicely separated states with
 big A component.
 
 
 * Systematics
+:PROPERTIES:
+:ID:       44311ab8-c780-4376-8dad-0c2f0d39b3b6
+:END:
 Now let's plot the gap between the continuum and the isolated state as
 a function of different parameters.
 
@@ -123,47 +147,50 @@ So up to scaling, it is the same! This is sensible, as this is the
 only \(k\) dependence of the problem.
 #+begin_src jupyter-julia
    begin
-       plot(k -> WalkSolution(k, prototype) |> lamb_shift, 0, 2π,
+       plot(k -> lamb_shift(full_prototype, k), 0, 2π,
             label="lamb shift", xlabel="k")
        plot!(k -> abs2(v(k, prototype)) / 100, 0, 2π, label="v(k)")
    end
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/4bc3bcebc441ef9aacdb3c09f900e5f297c54cd8.svg]]
+[[file:./.ob-jupyter/c404a4fc5a5e57269a50c9788d588c6d8c3d7754.svg]]
 
 
 This also holds for stronger coupling.
 #+begin_src jupyter-julia
-    begin
-        plot(k -> WalkSolution(k, @set prototype.g *= 10) |> lamb_shift, 0, 2π,
-             xlabel="k", label="lamb shift")
-        plot!(k -> abs2(v(k, prototype)), 0, 2π, label="v(k)")
-    end
+  let
+      params = @set full_prototype.spectral_density.J = .1
+      plot(k -> lamb_shift(params, k), 0, 2π, label="lamb shift", xlabel="k")
+      plot!(k -> abs2(v(k, prototype))/10, 0, 2π, label="v(k)")
+  end
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/cde810a8c1dd609cc05aa416b756609fa0b0e87e.svg]]
+[[file:./.ob-jupyter/3fde0e4f96fc2d6f8ab9f4239c4efd9de7c7f1ca.svg]]
 
 
 Or without the SW transform.
 #+begin_src jupyter-julia
-    begin
-        plot(k -> WalkSolution(k, @set prototype.sw_approximation = false) |> lamb_shift, 0, 2π,
-             label="lamb shift", xlabel="k")
-        plot!(k -> abs2(v(k, prototype) / 1), 0, 2π, label="v(k)")
-    end
+    let
+      params = @set full_prototype.sw_approximation = false
+      plot(k -> lamb_shift(params, k), 0, 2π, label="lamb shift", xlabel="k")
+      plot!(k -> abs2(v(k, prototype))/10, 0, 2π, label="v(k)")
+  end
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/48221a93faf18b18d90711f11081bf294ed35174.svg]]
+[[file:./.ob-jupyter/980e229430a8c030da7d6a15ef2925221346486f.svg]]
 
 ** α - Dependence
+:PROPERTIES:
+:ID:       2115fb4c-eed9-4ef2-94ee-43d67b68d2fd
+:END:
 We find a very minor dependence on α.
 #+begin_src jupyter-julia
-  begin
+  let
       p = plot(ylabel="lamb shift (normalized)", xlabel="α")
-      local shift(α, J_rel) = lamb_shift(WalkSolution(0, ModelParameters(setproperties(full_prototype, α=α, J=J_rel))))
+      shift(α, J_rel) = lamb_shift(@set full_prototype.spectral_density = setproperties(full_prototype.spectral_density, α=α, J=J_rel))
       for J_rel in [1, 2]
           local norm = shift(0, J_rel)
           plot!(α -> shift(α, J_rel) / norm, 0, 4, label="J_rel = $(J_rel)")
@@ -173,28 +200,34 @@ We find a very minor dependence on α.
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/96f444cf830c49bc1c9b2dbfe991c5c933b8940d.svg]]
+[[file:./.ob-jupyter/3baeae5132d04d5df9d96ad664fa99f21a83bcfc.svg]]
 
 With increasing coupling strength this dependence is more and more
 sensitive, but it amounts to only a few percent.
 
 ** N - Dependence
+:PROPERTIES:
+:ID:       ad37e92b-829a-4a1b-890e-3c07c330085a
+:END:
 #+begin_src jupyter-julia
   begin
       local Ns = collect(10:500)
-      local shifts = [lamb_shift(WalkSolution(0, ModelParameters(@set full_prototype.N = N))) for N in Ns]
+      local shifts = [lamb_shift(@set full_prototype.N = N) for N in Ns]
       plot(Ns, shifts / shifts[begin], ylabel="lamb shift", xlabel="N")
   end
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/d53c3519ab96d7aa7948cce411ecae5dacc4ff48.svg]]
+[[file:./.ob-jupyter/369d10abfcf9497574d698e37e555929c6350928.svg]]
 
 We see that we approach a limit, but the relative difference is not
 too great. In fact, here it is sub percent. We shoudl be able to
 obtain the lamb shift from the continuum limit.
 
 ** Coupling Strength - Dependence
+:PROPERTIES:
+:ID:       20f068be-c8c2-4d7e-991b-96f0d58224a9
+:END:
 If we plot the lamb shift relative to the miminal energy gap in the
 continuum, we se a monotnous behavior.
 
@@ -204,8 +237,7 @@ to the coupling matrix elements which are proportional to the square root.
 #+begin_src jupyter-julia
   let
       p = plot(xlabel="J", ylabel="lamb shift relative to minimum continuum spacing")
-      solution(J_rel) = WalkSolution(0, ModelParameters(@set full_prototype.J = J_rel))
-      shift(J_rel) = relative_lamb_shift(solution(J_rel))
+      shift(J_rel) = relative_lamb_shift(@set full_prototype.spectral_density.J = J_rel)
 
       plot!(shift, 1e-8, 10, xscale=:log10, yscale=:log10, label="Lamb Shift")
       plot!(x->1000*sqrt(x), label="sqrt")
@@ -215,40 +247,53 @@ to the coupling matrix elements which are proportional to the square root.
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/844d0fc4511ae7b713bb8ae0794a3a5a489485f4.svg]]
+[[file:./.ob-jupyter/d6216cba4f2bb9cac1df310319b780c9f0800fcd.svg]]
 
 In the limit of weak coupling the the lamb shift seems to reach a
 constant value.
 
 * Compensating the Lamb Shift
+:PROPERTIES:
+:ID:       120a110c-00a8-480f-960d-3ea1900ed94e
+:END:
 Aparrently it is not trivial to close the gap at finite cuping
 strengths. Maybe I'm misidentifying the isolated level though.
 #+begin_src jupyter-julia
   let
       p = plot(xlabel="ε shift", ylabel="relative lamb shift")
       solution(ε_shift, J_rel) = WalkSolution(0, ModelParameters(setproperties(full_prototype, ε_shift = ε_shift, J = J_rel)))
-      shift(ε_shift, J_rel) = lamb_shift(solution(ε_shift, J_rel))
+      function shift(ε_shift, J_rel)
+          params = @set full_prototype.ε_shift = ε_shift
+          @reset params.spectral_density.J = J_rel
+          lamb_shift(params)
+      end
 
       for J_rel in [.1, 1e-2, 1e-3, 1e-4]
           norm = shift(0, J_rel)
-          plot!(e -> shift(e, J_rel) / norm, -.5, .01, label="J_rel = $(J_rel)")
+          plot!(e -> shift(e, J_rel) / norm, -.1, .01, label="J_rel = $(J_rel)")
       end
       p
   end
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/6372017e90b4ae7c7392995930c808f4653aee62.svg]]
+[[file:./.ob-jupyter/63b47d0418a456172656ab02a5e94faad8c78b11.svg]]
 
-So we can only (reasonably) remove the lamb shift for weak coupling.
-
-
+We can see that the index of the A-dominant level changes. Further,
+there is a minimum in the relative change that can be achieved.
+Only in the weak-ish coupling limit we can make the gap close by a
+small shift.
 
 #+begin_src jupyter-julia
   let
       p = plot(xlabel="ε shift", ylabel="relative lamb shift")
-      solution(ε_shift, J_rel) = WalkSolution(0, ModelParameters(setproperties(full_prototype, ε_shift = ε_shift, J = J_rel, N=10)))
-      shift(ε_shift, J_rel) = lamb_shift(solution(ε_shift, J_rel))
+      solution(ε_shift, J_rel) = WalkSolution(0, ModelParameters(setproperties(full_prototype, ε_shift = ε_shift, J = J_rel)))
+      function shift(ε_shift, J_rel)
+          params = @set full_prototype.ε_shift = ε_shift
+          @reset params.spectral_density.J = J_rel
+          @reset params.N = 10
+          lamb_shift(params)
+      end
 
       for J_rel in [.1, 1e-2, 1e-3, 1e-4]
           norm = shift(0, J_rel)
@@ -259,14 +304,15 @@ So we can only (reasonably) remove the lamb shift for weak coupling.
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/58f15c22e7438b005a8ad9972e53833f231b3864.svg]]
+[[file:./.ob-jupyter/0084d969cbfe250626505f3cb62c105c1d2bb9b1.svg]]
 
 Interestingly, the optimal shift is dependent on the number of bath levels.
 
 The spectrum corrected for the lamb shift looks like:
 #+begin_src jupyter-julia
   let
-      H = hamiltonian(0, ModelParameters(@set full_prototype.ε_shift = -.045))
+      H = hamiltonian(0, ModelParameters(@set full_prototype.ε_shift = -.058))
+      @show full_prototype.spectral_density.J
       ψ_A = [1; zeros(num_bath_modes(prototype))]
       energies = eigvals(H)
       overlaps = (ψ_A' * eigvecs(H) .|> abs)'
@@ -275,28 +321,242 @@ The spectrum corrected for the lamb shift looks like:
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/ce7e1f50f8c404d287cb3ae661ca15058317ee75.svg]]
+:RESULTS:
+: full_prototype.spectral_density.J = 0.01
+[[file:./.ob-jupyter/e3de4514b08f58d93e74a2a90e55a8e93c931349.svg]]
+:END:
+So there is certainly an attraction and a change in the DOS.
+
+#+begin_src jupyter-julia
+  let
+      H = hamiltonian(0, ModelParameters(@set full_prototype.ε_shift = -.058))
+      @show full_prototype.spectral_density.J
+      ψ_A = [1; zeros(num_bath_modes(prototype))]
+      energies = eigvals(H)
+      overlaps = (ψ_A' * eigvecs(H) .|> abs)'
+      bar(energies, overlaps, xlabel="E", ylabel="Overlap with A")
+  end
+#+end_src
+
 
 ** Mean Displacement for Shifted Bath
+:PROPERTIES:
+:ID:       6d3a3b71-5fc7-4c19-a574-c6a735f642fa
+:END:
 This is \(ρ_A\) and the mean displacement for the shifted bath.
 #+begin_src jupyter-julia
   let
-      params = @set full_prototype.ε_shift = -.045
-      plot_overview(params, 100)
+      params = @set full_prototype.ε_shift = -.058
+      plot_overview(params, 1000)
   end
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/23a8d55c20ea3c4fe56101a33452e10503cdf252.svg]]
+[[file:./.ob-jupyter/b6a2facea2901c3103ba5237c531e8481edd896c.svg]]
+**Nice, with this choice we get revivals, so a proper choice of time
+scale is crucial!** Also, the average should be taken more locally
+around the time. We see that the displacement converges on \(1\).
 
 At first, this doesn't seem too helpful. Let's contrast it with the
 behavior for the unshifted bath.
 #+begin_src jupyter-julia
   let
-      plot_overview(full_prototype, 100)
+      plot_overview(full_prototype, 1000)
   end
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/c3f765fb7da9ebb6e191c239db7d206a5e73cdfd.svg]]
-That certainly is a difference.
+[[file:./.ob-jupyter/d9945c1c006fa6484b79fa5f69f8f1709b2b1416.svg]]
+That certainly is a difference. **Revivals still happen at the same time**
+
+And for \(u<1\).
+
+#+begin_src jupyter-julia
+  let
+      params = @set full_prototype.ε_shift = -.058
+      @reset params.u = .5
+      H = hamiltonian(0, ModelParameters(params))
+      ψ_A = [1; zeros(num_bath_modes(prototype))]
+      energies = eigvals(H)
+      overlaps = (ψ_A' * eigvecs(H) .|> abs)'
+      bar(energies, overlaps, xlabel="E", ylabel="Overlap with A")
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/32b6923a88aa76278b096135b9d1e2241f839cfa.svg]]
+
+#+begin_src jupyter-julia
+  let
+      params = @set full_prototype.ε_shift = -.052
+      @reset params.u = .5
+      plot_overview(params, 1000)
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/9b4528d765988f4e799b38e50bb3e3e50c4a8bf0.svg]]
+Nice, we converge to \(0\) just before the revival.
+
+
+** Superohmic SD
+:PROPERTIES:
+:ID:       91ae3bdf-560d-4bf7-8658-6e129bf5ff48
+:END:
+Now, how does this play out in the super-ohmic case?
+#+begin_src jupyter-julia
+  let
+      params = @set full_prototype.ε_shift = -.035
+      @reset params.spectral_density.α = 1.5
+      @reset params.u = .5
+      H = hamiltonian(0, ModelParameters(params))
+      ψ_A = [1; zeros(num_bath_modes(prototype))]
+      energies = eigvals(H)
+      overlaps = (ψ_A' * eigvecs(H) .|> abs)'
+      bar(energies, overlaps, xlabel="E", ylabel="Overlap with A")
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/47fe2f16445c3cca0d7515e64c3d3c0f4ca729b4.svg]]
+We see that the modification of the other levels is way smaller ->
+this is likely because the coupling relative to the energy gap does
+not converge. Still, we're able to close the gap :).
+
+
+#+begin_src jupyter-julia
+  let
+      params = @set full_prototype.ε_shift = -.035
+      @reset params.spectral_density.α = 1.5
+      @reset params.u = 2
+      plot_overview(params, 1500)
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/0c432981d3a1a3537c8ab553bc5a275a10e6d879.svg]]
+Revival time seems stable-ish. And the mean displacement is now
+different from one. Interestingly the behavior after the revival
+change s kind of drastically. 
+
+* Revivals
+:PROPERTIES:
+:ID:       42d77362-4821-4c83-b55e-630eb7e8f17e
+:END:
+Does \(ρ_A\) revival look similar for other \(k\)? (most likely)
+#+begin_src jupyter-julia
+  let
+      params = @set full_prototype.ε_shift = -.035
+      @reset params.spectral_density.α = 1.5
+      @reset params.u = 2
+      p = plot(xlabel="t", ylabel=raw"$\rho_A$")
+      for k in LinRange(0, π, 5)
+          sol = WalkSolution(k, ModelParameters(params))
+          plot!(t->a_weight(t, sol), 0, 1500, label="k=$(round(k, sigdigits=2))")
+      end
+      p
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/a705ee22117f799a9853141732db9faef9a1ed82.svg]]
+
+If we go back to the original 
+#+begin_src jupyter-julia
+  let
+      params = full_prototype
+      p = plot(xlabel="t", ylabel=raw"$\rho_A$")
+      for k in LinRange(0, π, 5)
+          sol = WalkSolution(k, ModelParameters(params))
+          plot!(t->a_weight(t, sol), 0, 1500, label="k=$(round(k, sigdigits=2))")
+      end
+      p
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/98c5d619f237715249e6ce12b2d6829cf127e453.svg]]
+
+Nice, the revival time is just ~2π * number of levels~ as we inherit
+the structure of the bath.
+
+** Exponential Spacing
+:PROPERTIES:
+:ID:       8bd2cabc-eb99-46ed-8644-9bcfa0eccc54
+:END:
+What happens if we choose the exponential spacing?
+#+begin_src jupyter-julia
+  let
+        p = plot(xlabel="t", ylabel=raw"$\rho_A$")
+        for k in LinRange(0, π, 2)
+            for d in [LinearBathDiscretization, ExponentialBathDiscretization]
+                params = @set full_prototype.discretization = d
+                @reset params.ε_shift = -.058
+
+                sol = WalkSolution(k, ModelParameters(params))
+                plot!(t->a_weight(t, sol), 0, 1500, label="k=$(round(k, sigdigits=2)), $(discretization_name(d))")
+            end
+        end
+        p
+    end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/79f6c15d659345214b753772b3c359a32b57b643.svg]]
+Now stuff is way less smooth and doesn't experience revivals. It also
+seems to fix the weird behavior before revival.
+
+
+How does this pan out mean-displacement wise?
+#+begin_src jupyter-julia
+  let
+      params = @set full_prototype.ε_shift = -.058
+      @reset params.discretization = ExponentialBathDiscretization
+      plot_overview(params, 1500)
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/abebfd0faf5bf30f1e8c423a170e7b8e9100a563.svg]]
+The revival is pushed far without changing the behavior much. But it
+adds noise... We see that the infinite time average can't be trusted!
+
+On the flipside \(\ev{m}\) approaches \(1\) way closer as in the
+linear case.
+#+begin_src jupyter-julia
+  let
+      params = @set full_prototype.ε_shift = -.058
+      @reset params.discretization = ExponentialBathDiscretization
+      @reset params.N = 50
+      plot_overview(params, 1500)
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/a132d9d76528b740487fd99de546e38203efabd1.svg]]
+Even 50 modes works well. And we see the revival.
+
+
+
+Can we predict the revival time?
+#+begin_src jupyter-julia
+  let
+      p = plot(xlabel="t", ylabel=raw"$\rho_A$")
+      k = 0
+      params = @set full_prototype.discretization = ExponentialBathDiscretization
+      @reset params.ε_shift = -.058
+      @reset params.N = 100
+
+      sol = WalkSolution(k, ModelParameters(params))
+      plot!(t->a_weight(t, sol), 0, 5000, label="k=$(round(k, sigdigits=2))")
+      ε, _ = discretize_bath(params)
+      vline!([2π/(median(ε[begin+1:end] - ε[begin:end-1]))], label="median")
+      vline!([2π/(minimum(ε[begin+1:end] - ε[begin:end-1]))], label="minimum")
+      p
+    end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/edc060953ea381725b72781d44dbf1d43cf32058.svg]]
+Seems to be harder. But sometwhere between the median and the minimum
+seems good.
