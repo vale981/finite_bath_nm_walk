@@ -94,7 +94,7 @@ function plot_overview(p::ExtendedModelParameters, T::Real, k::Real = 0)
     params = ModelParameters(p)
     sol = WalkSolution(k, params)
 
-    plot(t->mean_displacement(t, params), 0.1, T, label=raw"$\langle m\rangle$", xlabel="t", title="u=$(p.u), α=$(p.α), N=$(p.N)")
+    plot(t->mean_displacement(t, params), 0.1, T, label=raw"$\langle m\rangle$", xlabel="t", title="u=$(p.u), α=$(p.spectral_density.α), N=$(p.N)")
     plot!(t->analytic_time_averaged_displacement(t, params), label=raw"$\overline{\langle m\rangle}$")
     hline!(t->analytic_time_averaged_displacement(params), label=raw"$\overline{\langle m\rangle}(T=\infty)$")
 
