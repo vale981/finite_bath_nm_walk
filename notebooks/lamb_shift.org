@@ -15,6 +15,7 @@
 #+end_src
 
 #+RESULTS:
+: [32m[1m  Activating[22m[39m project at `~/Documents/org/roam/data/c4/5097d2-2599-426d-82db-6ecfb5207151`
 
 
 #+begin_src jupyter-julia
@@ -73,7 +74,7 @@ Now we can diagonalize and plot the density of states.
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/1d3535664e13e82243b23f6f68a8835aa64184ad.svg]]
+[[file:./.ob-jupyter/9fe95fd36adec21aea019dd3e7940b9d43c402c0.svg]]
 
 We see a nice gap :).
 
@@ -262,10 +263,10 @@ So we can only (reasonably) remove the lamb shift for weak coupling.
 
 Interestingly, the optimal shift is dependent on the number of bath levels.
 
-The spectrum corrected for the lamb shift looks like
+The spectrum corrected for the lamb shift looks like:
 #+begin_src jupyter-julia
   let
-      H = hamiltonian(0, ModelParameters(@set full_prototype.ε_shift = -.04))
+      H = hamiltonian(0, ModelParameters(@set full_prototype.ε_shift = -.045))
       ψ_A = [1; zeros(num_bath_modes(prototype))]
       energies = eigvals(H)
       overlaps = (ψ_A' * eigvecs(H) .|> abs)'
@@ -274,4 +275,28 @@ The spectrum corrected for the lamb shift looks like
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/645bc720bdd6205f72273006769bda3888e4c361.svg]]
+[[file:./.ob-jupyter/ce7e1f50f8c404d287cb3ae661ca15058317ee75.svg]]
+
+** Mean Displacement for Shifted Bath
+This is \(ρ_A\) and the mean displacement for the shifted bath.
+#+begin_src jupyter-julia
+  let
+      params = @set full_prototype.ε_shift = -.045
+      plot_overview(params, 100)
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/23a8d55c20ea3c4fe56101a33452e10503cdf252.svg]]
+
+At first, this doesn't seem too helpful. Let's contrast it with the
+behavior for the unshifted bath.
+#+begin_src jupyter-julia
+  let
+      plot_overview(full_prototype, 100)
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/c3f765fb7da9ebb6e191c239db7d206a5e73cdfd.svg]]
+That certainly is a difference.

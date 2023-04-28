@@ -3,10 +3,12 @@ includet("./WalkModel.jl")
 module Utilities
 export plot_analytic_phase_diagram
 export plot_analytic_phase_diagram_born_v_exact
+export plot_overview
 
 using ..WalkModel
 import Plots: heatmap, hline!, vline!
 import Statistics: mean
+using Plots
 
 function plot_analytic_phase_diagram(grid_N::Integer=50; α_limits::Tuple{Real,Real}=(0, 2), u_limits::Tuple{Real,Real}=(0, 2),
     num_bath_modes::Integer=200, bath_discretization::Function=exponential_energy_distribution, coupling_strength::Real=0.01, ω_c::Real=1, ε_min::Real=0, integrand=integrand_diagonalization, T::Real=0, normalize::Bool = true)
@@ -87,4 +89,17 @@ function plot_analytic_phase_diagram_born_v_exact(grid_N::Integer=50, α_limits:
 
     p
 end
+
+function plot_overview(p::ExtendedModelParameters, T::Real, k::Real = 0)
+    params = ModelParameters(p)
+    sol = WalkSolution(k, params)
+
+    plot(t->mean_displacement(t, params), 0.1, T, label=raw"$\langle m\rangle$", xlabel="t", title="u=$(p.u), α=$(p.α), N=$(p.N)")
+    plot!(t->analytic_time_averaged_displacement(t, params), label=raw"$\overline{\langle m\rangle}$")
+    hline!(t->analytic_time_averaged_displacement(params), label=raw"$\overline{\langle m\rangle}(T=\infty)$")
+
+    plot!(t->a_weight(t, sol) * 2π, label="\$\\rho_A(k=$(k))\$")
+end
+
+plot_overview(params::ExtendedModelParameters, rest...) = plot_overview(ModelParameters(params), rest...)
 end
