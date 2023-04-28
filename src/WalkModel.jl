@@ -30,6 +30,8 @@ export num_bath_modes
 export Discretization
 export LinearBathDiscretization
 export ExponentialBathDiscretization
+export discretization_name
+export discretize_bath
 
 using Parameters
 import LinearAlgebra: diagm, eigen
@@ -43,7 +45,8 @@ import LinearAlgebra: ⋅
 abstract type BathDiscretization end
 abstract type LinearBathDiscretization <: BathDiscretization end
 abstract type ExponentialBathDiscretization <: BathDiscretization end
-
+discretization_name(::Type{LinearBathDiscretization}) = "linear"
+discretization_name(::Type{ExponentialBathDiscretization}) = "exponential"
 
 """The parameters required to simulate the model, agnostic of how they
 are arrived at."""
@@ -69,56 +72,7 @@ are arrived at."""
     sw_approximation::Bool = false
 end
 
-"""The parameters required to simulate the model, agnostic of how they
-are arrived at.
-Instead of specifying the bath spectrum and coupling directly, these values are computed later on."""
-@with_kw struct ExtendedModelParameters
-    """Intracell hopping."""
-    v::Real = 1
 
-    """Ratio of inter to intracell hopping."""
-    u::Real = 0.5
-
-    """The site energy detuning."""
-    ω::Real = 0.1
-
-    J::Real = .01
-    ω_c::Real = 1
-    α::Real = 1
-    N::Integer = 10
-    discretization::Type{<:BathDiscretization} = LinearBathDiscretization
-
-    normalize::Bool = true
-
-    ε_shift::Real = 0
-
-    """Whether the system should simulated in the Schrieffer-Wolff
-       approximation."""
-    sw_approximation::Bool = false
-end
-
-function ModelParameters(p::ExtendedModelParameters)
-    ε, g = discretize_bath(p)
-
-    ModelParameters(p.v, p.u, p.ω, ε, g, p.sw_approximation)
-end
-
-function convert(::Type{ModelParameters}, p::ExtendedModelParameters)
-   ModelParameters(p)
-end
-
-
-"""Returns the number of bath states for the model."""
-num_bath_modes(p::ModelParameters) = length(p.g)
-
-"""
-    v(k, v, u)
-
-The complex ``k`` rependent hopping amplitude, where `v` is the
-intracell hopping and `u` is the ratio of inter to intracell
-hopping."""
-v(k::Real, v::Real, u::Real)::Complex = v + u * v * exp(complex(0, k))
-v(k::Real, params::ModelParameters)::Complex = v(k, params.v, params.u)
 
 struct OhmicSpectralDensity
     ω_c::Real
@@ -126,8 +80,6 @@ struct OhmicSpectralDensity
     α::Real
 end
 
-OhmicSpectralDensity(params::ExtendedModelParameters) = OhmicSpectralDensity(params.ω_c, params.J, params.α)
-convert(::Type{OhmicSpectralDensity}, params::ExtendedModelParameters) = OhmicSpectralDensity(params)
 
 (J::OhmicSpectralDensity)(ε::Real) =
     if ε < J.ω_c
@@ -150,6 +102,60 @@ OhmicSpectralDensityIntegral(J::OhmicSpectralDensity) = OhmicSpectralDensityInte
     else
         J.J * J.ω_c^(J.α + 1) / (J.α + 1)
     end
+
+"""The parameters required to simulate the model, agnostic of how they
+are arrived at.
+Instead of specifying the bath spectrum and coupling directly, these values are computed later on."""
+@with_kw struct ExtendedModelParameters
+    """Intracell hopping."""
+    v::Real = 1
+
+    """Ratio of inter to intracell hopping."""
+    u::Real = 0.5
+
+    """The site energy detuning."""
+    ω::Real = 0.1
+
+
+    spectral_density::OhmicSpectralDensity = OhmicSpectralDensity(1, .01, 1)
+
+    N::Integer = 10
+    discretization::Type{<:BathDiscretization} = LinearBathDiscretization
+
+    normalize::Bool = true
+
+    ε_shift::Real = 0
+
+    """Whether the system should simulated in the Schrieffer-Wolff
+       approximation."""
+    sw_approximation::Bool = false
+end
+
+function ModelParameters(p::ExtendedModelParameters)
+    ε, g = discretize_bath(p)
+
+    ModelParameters(p.v, p.u, p.ω, ε, g, p.sw_approximation)
+end
+
+function convert(::Type{ModelParameters}, p::ExtendedModelParameters)
+   ModelParameters(p)
+end
+
+OhmicSpectralDensity(params::ExtendedModelParameters) = params.spectral_density
+convert(::Type{OhmicSpectralDensity}, params::ExtendedModelParameters) = OhmicSpectralDensity(params)
+
+
+"""Returns the number of bath states for the model."""
+num_bath_modes(p::ModelParameters) = length(p.g)
+
+"""
+    v(k, v, u)
+
+The complex ``k`` rependent hopping amplitude, where `v` is the
+intracell hopping and `u` is the ratio of inter to intracell
+hopping."""
+v(k::Real, v::Real, u::Real)::Complex = v + u * v * exp(complex(0, k))
+v(k::Real, params::ModelParameters)::Complex = v(k, params.v, params.u)
 
 """The winding phase of the hopping amplitude.
    The arguments are as in [`v`](@ref)."""
