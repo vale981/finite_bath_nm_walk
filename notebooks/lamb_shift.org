@@ -16,6 +16,7 @@
 #+end_src
 
 #+RESULTS:
+: [32m[1m  Activating[22m[39m project at `~/Documents/org/roam/data/c4/5097d2-2599-426d-82db-6ecfb5207151`
 
 
 #+begin_src jupyter-julia
@@ -43,37 +44,13 @@
 :   sw_approximation: Bool true
 : 
 
+We rename this function, because of compatibility.
 #+begin_src jupyter-julia
-  function lamb_shift(params::ModelParameters, k::Real = 0, relative::Bool = false)
-      H = hamiltonian(k, params)
-      ψ_A = if params.sw_approximation
-          [1; zeros(num_bath_modes(params))]
-      else
-          [1; zeros(num_bath_modes(params) + 1)]
-      end
-
-      energies = eigvals(H)
-      ev = eigvecs(H)
-      overlaps = (ψ_A' * ev .|> abs)[1, :]
-      index = argmax(overlaps)
-
-      isolated_energy = energies[index]
-      energies = deleteat!(energies, index)
-
-      shift = minimum(energies) - isolated_energy
-      if relative
-          shift /= minimum(abs.(energies[begin + 1:end] .- energies[begin:end-1]))
-      end
-
-      shift
-  end
   relative_lamb_shift(args...) = lamb_shift(args..., true)
-
-  lamb_shift(params::ExtendedModelParameters, args...) = lamb_shift(ModelParameters(params), args...)
 #+end_src
 
 #+RESULTS:
-: lamb_shift (generic function with 5 methods)
+: relative_lamb_shift (generic function with 1 method)
 
 * Hunting for the Lamb Shift
 :PROPERTIES:
@@ -94,7 +71,7 @@ Now we can diagonalize and plot the density of states.
 #+RESULTS:
 :RESULTS:
 : 0.04460516855585549
-[[file:./.ob-jupyter/d37e5806a1ff43f3ea53997c14e0eaab21b86ba1.svg]]
+[[file:./.ob-jupyter/c60e75c877b13adb87934bb83a5ecab91030ec1c.svg]]
 :END:
 
 We see a nice gap :).
@@ -297,14 +274,14 @@ small shift.
 
       for J_rel in [.1, 1e-2, 1e-3, 1e-4]
           norm = shift(0, J_rel)
-          plot!(e -> shift(e, J_rel) / norm, -.5, .01, label="J_rel = $(J_rel)")
+          plot!(e -> Shift(e, J_rel) / norm, -.5, .01, label="J_rel = $(J_rel)")
       end
       p
   end
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/0084d969cbfe250626505f3cb62c105c1d2bb9b1.svg]]
+[[file:./.ob-jupyter/a4eb0070c0ea73bef702111aa30267067dafb1b0.svg]]
 
 Interestingly, the optimal shift is dependent on the number of bath levels.
 
@@ -352,7 +329,7 @@ This is \(ρ_A\) and the mean displacement for the shifted bath.
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/b6a2facea2901c3103ba5237c531e8481edd896c.svg]]
+[[file:./.ob-jupyter/41438e553e75f1c291cd196fec912a64a21d6707.svg]]
 **Nice, with this choice we get revivals, so a proper choice of time
 scale is crucial!** Also, the average should be taken more locally
 around the time. We see that the displacement converges on \(1\).
@@ -560,3 +537,203 @@ Can we predict the revival time?
 [[file:./.ob-jupyter/edc060953ea381725b72781d44dbf1d43cf32058.svg]]
 Seems to be harder. But sometwhere between the median and the minimum
 seems good.
+
+* Automating the Shifting
+Generically, we have to shift the bath to lower energies to close the
+gap in the spectrum.
+
+We can do this numerically, by minizmizing the distance between the
+first level and all the others. We can minimize the absolute value of
+the lamb shift shown in [[id:120a110c-00a8-480f-960d-3ea1900ed94e][Compensating the Lamb Shift]].
+
+We begin by reproducing the result from [[id:120a110c-00a8-480f-960d-3ea1900ed94e][above]] for the standard
+configuration chosen at the top of the notebook.
+
+By a simple binary search, we can find the point where the shift
+switches sign. The binary search finds upper and lower bounds for the
+transition and we take the upper bound.
+#+begin_src jupyter-julia
+  let
+      p = plot(xlabel="ε shift", ylabel="relative lamb shift", ylim=(-1, 1))
+      solution(ε_shift, J_rel) = WalkSolution(0, ModelParameters(setproperties(full_prototype, ε_shift = ε_shift, J = J_rel)))
+      function shift(ε_shift)
+          params = @set full_prototype.ε_shift = ε_shift
+          lamb_shift(params)
+      end
+
+      vline!([optimal_bath_shift(full_prototype, 0.)])
+
+      norm = shift(0)
+      plot!(e -> (shift(e))/norm, -.07, -.05)
+      p
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/1a44f28a752718a719e372d81a3210db0d5e8788.svg]]
+
+Let's try this for multiple couping strengths.
+#+begin_src jupyter-julia
+  let
+      p = plot(xlabel="ε shift", ylabel="relative lamb shift")
+      function shifted_params(ε_shift, J_rel)
+          params = @set full_prototype.ε_shift = ε_shift
+          @reset params.spectral_density.J = J_rel
+          @reset params.N = 10
+      end
+
+      shift(ε_shift, J_rel) = lamb_shift(shifted_params(ε_shift, J_rel))
+
+      for (c, J_rel) in enumerate([.1, 1e-2, 1e-3, 1e-4])
+          norm = shift(0, J_rel)
+          plot!(e -> shift(e, J_rel) / norm, -.5, .01, label="J_rel = $(J_rel)", color=c)
+          vline!([optimal_bath_shift(shifted_params(0, J_rel), 0)], color=c, linestyle=:dash, label=false)
+      end
+      p
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/679e6a401188771a6099485e2b0ceefa429db186.svg]]
+
+Nice! All the shifts are detected correctly.
+How does it look like for different \(α\)?
+
+#+begin_src jupyter-julia
+  let
+      p = plot(xlabel="ε shift", ylabel="relative lamb shift")
+      function shifted_params(ε_shift, α)
+          params = @set full_prototype.ε_shift = ε_shift
+          @reset params.spectral_density.α = α
+          @reset params.N = 10
+      end
+
+      shift(ε_shift, α) = lamb_shift(shifted_params(ε_shift, α))
+
+      for (c, α) in enumerate(LinRange(0, 2, 5))
+          norm = shift(0, α)
+          plot!(e -> shift(e, α) / norm, -.15, .01, label="α = $(α)", color=c)
+          vline!([optimal_bath_shift(shifted_params(0, α), 0)], color=c, linestyle=:dash, label=false)
+      end
+      p
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/c617a6c6db0fff81fd3f4aca409eb27f6d4dab69.svg]]
+Interestingly, the shift dependence on \(α\) is non-trivial.
+#+begin_src jupyter-julia
+  let
+      shift(α) = optimal_bath_shift((@set full_prototype.spectral_density.α = α) |> ModelParameters, 0)
+      plot(shift, 0.01, 2, xlabel="α", ylabel="bath shift")
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/e2894f609af226248de8f463f9b75f21335c99f9.svg]]
+#+begin_src jupyter-julia
+  let
+      baseline = optimal_bath_shift(full_prototype, 0)
+      baseline_shift = lamb_shift((@set full_prototype.ε_shift = optimal_bath_shift(full_prototype, 0)), 0)
+
+      plot(k -> optimal_bath_shift(full_prototype, k) / baseline, 0, 2π, xlabel="k", label="energy shift")
+      plot!(k -> lamb_shift((@set full_prototype.ε_shift = optimal_bath_shift(full_prototype, k)), k) / baseline_shift, label="lamb shift (optimized)")
+      plot!(k -> lamb_shift((@set full_prototype.ε_shift = baseline), k) / baseline_shift, label="lamb shift")
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/4a019bd71f696898531aadb8d37fe6cd1bb73352.svg]]
+
+The \(k\) dependence might be a problem, as it is quite
+significant. As we see, the energy gap (lamb shift) also varies
+significantly. Even worse, the green curve shows, that the shift at
+\(k=0\) just doesn't work for other values of \(k\).
+
+We will see below however, that this overcompensation still produces
+OK results.
+
+** Phase Diagram with "Overcompensation"
+:PROPERTIES:
+:ID:       f0b8a81b-3996-430c-b7d9-b2e6beb58586
+:END:
+With this we can attempt to generate the phase diagram.
+#+begin_src jupyter-julia
+  let
+      params = full_prototype
+      plot_phase_diagram((@set params.N = 300), 8)
+  end
+
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+: maximum(displacement) = 0.9997545417297065
+[[file:./.ob-jupyter/dd722a07d2755fd321d5e47ab18be30bb7ec2ad4.svg]]
+:END:
+
+Or with weaker coupling.
+#+begin_src jupyter-julia
+  let
+      params = @set full_prototype.spectral_density.J = .001
+      plot_phase_diagram((@set params.N = 300), 8)
+  end
+
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+: maximum(displacement) = 0.9654184835226091
+[[file:./.ob-jupyter/d81b69c1a7778960897e62181707c6894d3c9e70.svg]]
+:END:
+
+Or stronger.
+#+begin_src jupyter-julia
+  let
+      params = @set full_prototype.spectral_density.J = .02
+      plot_phase_diagram((@set params.N = 300), 8)
+  end
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+: maximum(displacement) = 0.999976876133196
+[[file:./.ob-jupyter/a0fbcea823cd4bc96a5a550332e3b52a2f1887eb.svg]]
+:END:
+
+Ok there is a tradeof between coupling too strong and "destroying" the
+phase transition. For weaker coupling, reaching the steady state takes
+longer than the revival time. For stronger coupling, we destroy the
+phase transtition, as the lamb shift can't be compensated.
+
+** Phase Diagram with "Undercompensation"
+We now explore what happens, if we choose to shift by the smalles
+amount possible.
+
+#+begin_src jupyter-julia
+  let
+      plot_phase_diagram((@set full_prototype.N = 300), 8, shift_k=π)
+  end
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+: maximum(displacement) = 0.6688946754010082
+[[file:./.ob-jupyter/482de872a1a44ee6e152e481286a06ce2a1aaadb.svg]]
+:END:
+
+The results are /worse/ compared to [[id:f0b8a81b-3996-430c-b7d9-b2e6beb58586][Phase Diagram with
+"Overcompensation"]]. The maximum mean displacement is nowhere near
+\(1\) and the transition is much less sharp.
+
+** Behavior around the Critical \(α\)
+The phase transtion around \(α= 1\) suffers from finite-size
+effects. Let's explore their origin.
+
+#+begin_src jupyter-julia
+  let
+      params = @set full_prototype.ε_shift = -.058
+      @reset params.discretization = ExponentialBathDiscretization
+      plot_overview(params, 1500)
+  end
+#+end_src

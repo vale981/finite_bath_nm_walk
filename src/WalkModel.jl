@@ -32,15 +32,19 @@ export LinearBathDiscretization
 export ExponentialBathDiscretization
 export discretization_name
 export discretize_bath
+export lamb_shift
+export optimal_bath_shift
+export auto_shift_bath
+export recurrence_time
 
 using Parameters
-import LinearAlgebra: diagm, eigen
+import LinearAlgebra: diagm, eigen, ⋅
 import Cubature: hquadrature, hquadrature_v
 import Statistics: mean
 import SpecialFunctions: gamma
 import Polynomials: Polynomial, fromroots, coeffs
 import PolynomialRoots: roots
-import LinearAlgebra: ⋅
+import Accessors: @set
 
 abstract type BathDiscretization end
 abstract type LinearBathDiscretization <: BathDiscretization end
@@ -117,7 +121,7 @@ Instead of specifying the bath spectrum and coupling directly, these values are 
     ω::Real = 0.1
 
 
-    spectral_density::OhmicSpectralDensity = OhmicSpectralDensity(1, .01, 1)
+    spectral_density::OhmicSpectralDensity = OhmicSpectralDensity(1, 0.01, 1)
 
     N::Integer = 10
     discretization::Type{<:BathDiscretization} = LinearBathDiscretization
@@ -138,7 +142,7 @@ function ModelParameters(p::ExtendedModelParameters)
 end
 
 function convert(::Type{ModelParameters}, p::ExtendedModelParameters)
-   ModelParameters(p)
+    ModelParameters(p)
 end
 
 OhmicSpectralDensity(params::ExtendedModelParameters) = params.spectral_density
@@ -239,7 +243,7 @@ a_weight(t::Real, sol::WalkSolution)::Real = sol.vectors[1, :] ⋅ (exp.(complex
 non_a_weight(t::Real, sol::WalkSolution)::Real = (1 / (2π) - abs2(sol(t)[1]))
 
 
-function discretize_bath(scheme::Type{<:BathDiscretization}, J::OhmicSpectralDensity, N::Integer, normalize::Bool = true, ε_shift::Real =0)
+function discretize_bath(scheme::Type{<:BathDiscretization}, J::OhmicSpectralDensity, N::Integer, normalize::Bool=true, ε_shift::Real=0)
     xk, ε = find_nodes_and_energies(scheme, J, N)
 
     J_int = OhmicSpectralDensityIntegral(J)
@@ -460,5 +464,76 @@ analytic_time_averaged_displacement(params::ModelParameters) = analytic_time_ave
 
 
 time_scale(params::ModelParameters) = 2π / minimum(abs.(params.ε))
+
+function lamb_shift(params::ModelParameters, k::Real=0, relative::Bool=false)
+    H = hamiltonian(k, params)
+    ψ_A = if params.sw_approximation
+        [1; zeros(num_bath_modes(params))]
+    else
+        [1; zeros(num_bath_modes(params) + 1)]
+    end
+
+    energies, ev = eigen(H)
+
+    overlaps = (ψ_A'*ev.|>abs)[1, :]
+    index = argmax(overlaps)
+
+    isolated_energy = energies[index]
+    energies = deleteat!(energies, index)
+
+    shift = minimum(energies) - isolated_energy
+    if relative
+        shift /= minimum(abs.(energies[begin+1:end] .- energies[begin:end-1]))
+    end
+
+    shift
+end
+
+lamb_shift(params::ExtendedModelParameters, args...) = lamb_shift(ModelParameters(params), args...)
+
+function optimal_bath_shift(params::ModelParameters, k::Real, ε::Real = 1e-5, maxiter::Integer = 10_000)
+    function target(shift::Real)
+        ε_shifted = params.ε .+ shift
+        p = @set params.ε = ε_shifted
+        lamb_shift(p, k, false)
+    end
+
+    scale = (params.ε .|>abs |> maximum)
+
+    upper = 0
+    lower = -scale
+    mid = 0
+
+    iters::Integer = 0
+    while (rest = abs(upper - lower) / scale) > ε
+        mid = (upper + lower) / 2
+
+        if target(mid) < 0
+            lower = mid
+        else
+            upper = mid
+        end
+
+        iters += 1
+
+        if iters > maxiter
+            error("No convergence within N=$(maxiter) iterations. Residual uncertainty is $(rest).")
+        end
+    end
+
+    upper
+end
+
+optimal_bath_shift(params::ExtendedModelParameters, args...; kwargs...) = optimal_bath_shift(ModelParameters(params), args...; kwargs...)
+
+function auto_shift_bath(params::ExtendedModelParameters, args...; kwargs...)
+    @set params.ε_shift = optimal_bath_shift(params, args...; kwargs...)
+end
+
+function recurrence_time(p::ModelParameters)::Real
+    2π/minimum(p.ε[begin+1:end] - p.ε[begin:end-1])
+end
+
+recurrence_time(p::ExtendedModelParameters) = recurrence_time(p |> ModelParameters)
 
 end
