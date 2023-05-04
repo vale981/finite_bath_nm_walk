@@ -79,37 +79,25 @@ We see a nice gap :).
 
 Let's look at the eigenstates.
 #+begin_src jupyter-julia
-  let
-      H = hamiltonian(0, prototype)
-      ψ_A = [1; zeros(num_bath_modes(prototype))]
-      energies = eigvals(H)
-      overlaps = (ψ_A' * eigvecs(H) .|> abs)'
-      bar(energies, overlaps, xlabel="E", ylabel="Overlap with A")
-  end
+  plot_A_overlap(prototype)
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/a6cc1a34d7b7e5bef06b062e76aaed2c61b17dcf.svg]]
+[[file:./.ob-jupyter/2edc062316da78022a17f5c7e5e36f4f649a648d.svg]]
 Here we have one isolated state.
 
 
 #+begin_src jupyter-julia
   let
-      params = ModelParameters(@set full_prototype.spectral_density.J = 1)
-
-      H = hamiltonian(0, params)
-      ψ_A = [1; zeros(num_bath_modes(prototype))]
-      energies = eigvals(H)
-      overlaps = (ψ_A' * eigvecs(H) .|> abs)'
-      bar(energies, overlaps, xlabel="E", ylabel="Overlap with A")
+      params = @set full_prototype.spectral_density.J = 1
+      plot_A_overlap(params)
   end
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/275870ca8f9697b785659577000ea287654e86f9.svg]]
+[[file:./.ob-jupyter/deb5efe93debfed89bec2f51e99a2213d85a797c.svg]]
 In the strong coupling regime we get two nicely separated states with
 big A component.
-
 
 * Systematics
 :PROPERTIES:
@@ -166,21 +154,38 @@ Or without the SW transform.
 We find a very minor dependence on α.
 #+begin_src jupyter-julia
   let
+
       p = plot(ylabel="lamb shift (normalized)", xlabel="α")
-      shift(α, J_rel) = lamb_shift(@set full_prototype.spectral_density = setproperties(full_prototype.spectral_density, α=α, J=J_rel))
-      for J_rel in [1, 2]
-          local norm = shift(0, J_rel)
-          plot!(α -> shift(α, J_rel) / norm, 0, 4, label="J_rel = $(J_rel)")
+      params = @set full_prototype.N = 1000
+      parameters(α, J_rel) = (@set params.spectral_density = setproperties(full_prototype.spectral_density, α=α, J=J_rel))
+      shift(α, J_rel) = lamb_shift(parameters(α, J_rel))
+      function perturbative_shift(α, J_rel)
+          ps = parameters(α, J_rel)
+          ε, g =  ps |> discretize_bath
+          g .*= v(0, ps |> ModelParameters) / abs(ps.v * sqrt(1 + ps.u^2))
+          return ε[1] + abs2(g[1])/ε[1] + sum(abs2.(g) ./ ε)
+      end
+
+      for (color, J_rel) in enumerate([.01, 1e-3, 1e-4, 1e-5])
+          norm = shift(2, J_rel)
+          pert_norm = perturbative_shift(2, J_rel)
+          plot!(α -> shift(α, J_rel) / norm, 0, 2, label="J_rel = $(J_rel)", color=color)
+          plot!(α -> perturbative_shift(α, J_rel) / pert_norm, label=false, linestyle=:dash, color=color)
       end
       p
   end
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/3baeae5132d04d5df9d96ad664fa99f21a83bcfc.svg]]
+[[file:./.ob-jupyter/64762aa4e3ae34d9ae696868b70c7eaa98b8a790.svg]]
 
 With increasing coupling strength this dependence is more and more
 sensitive, but it amounts to only a few percent.
+
+To match up with perturbation theory, the coupling has to be pretty
+small.
+In the regeime that's assumed here, the \(J=0.01\) where second order perturbation
+theory is only consistent for \(α\gg 1\).
 
 ** N - Dependence
 :PROPERTIES:
@@ -212,22 +217,23 @@ Here I've ploted it on a log-log scale and we can tell, that the shift
 follows a power law in coupling strength. It is basically proportional
 to the coupling matrix elements which are proportional to the square root.
 #+begin_src jupyter-julia
-  let
-      p = plot(xlabel="J", ylabel="lamb shift relative to minimum continuum spacing")
-      shift(J_rel) = relative_lamb_shift(@set full_prototype.spectral_density.J = J_rel)
+    let
+        p = plot(xlabel="J", ylabel="lamb shift relative to minimum continuum spacing")
+        shift = lamb_shift ∘ @parametrize_properties(full_prototype, spectral_density.J, spectral_density.α)
 
-      plot!(shift, 1e-8, 10, xscale=:log10, yscale=:log10, label="Lamb Shift")
-      plot!(x->1000*sqrt(x), label="sqrt")
-
-      p
-  end
+        for α in LinRange(0, 2, 5)
+        plot!(j -> shift(j, α), 1e-5, 100, xscale=:log10, yscale=:log10, label="α = $(α)")
+        end
+        p
+    end
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/d6216cba4f2bb9cac1df310319b780c9f0800fcd.svg]]
+[[file:./.ob-jupyter/cf461ddecd27e355aa3a4108e0fbb507fa4838d8.svg]]
 
 In the limit of weak coupling the the lamb shift seems to reach a
-constant value.
+constant value independent of α. The same goes for the ultra strong limit.
+
 
 * Compensating the Lamb Shift
 :PROPERTIES:
@@ -288,32 +294,14 @@ Interestingly, the optimal shift is dependent on the number of bath levels.
 The spectrum corrected for the lamb shift looks like:
 #+begin_src jupyter-julia
   let
-      H = hamiltonian(0, ModelParameters(@set full_prototype.ε_shift = -.058))
-      @show full_prototype.spectral_density.J
-      ψ_A = [1; zeros(num_bath_modes(prototype))]
-      energies = eigvals(H)
-      overlaps = (ψ_A' * eigvecs(H) .|> abs)'
-      bar(energies, overlaps, xlabel="E", ylabel="Overlap with A")
+      plot_A_overlap(@set full_prototype.ε_shift = -.058)
   end
 #+end_src
 
 #+RESULTS:
-:RESULTS:
-: full_prototype.spectral_density.J = 0.01
-[[file:./.ob-jupyter/e3de4514b08f58d93e74a2a90e55a8e93c931349.svg]]
-:END:
+[[file:./.ob-jupyter/d83b9a15ee2dc23d0d75a2f8c081a733d3672e7b.svg]]
 So there is certainly an attraction and a change in the DOS.
 
-#+begin_src jupyter-julia
-  let
-      H = hamiltonian(0, ModelParameters(@set full_prototype.ε_shift = -.058))
-      @show full_prototype.spectral_density.J
-      ψ_A = [1; zeros(num_bath_modes(prototype))]
-      energies = eigvals(H)
-      overlaps = (ψ_A' * eigvecs(H) .|> abs)'
-      bar(energies, overlaps, xlabel="E", ylabel="Overlap with A")
-  end
-#+end_src
 
 
 ** Mean Displacement for Shifted Bath
@@ -329,7 +317,7 @@ This is \(ρ_A\) and the mean displacement for the shifted bath.
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/41438e553e75f1c291cd196fec912a64a21d6707.svg]]
+[[file:./.ob-jupyter/15bc0799f3780388db85c35d742983453999a572.svg]]
 **Nice, with this choice we get revivals, so a proper choice of time
 scale is crucial!** Also, the average should be taken more locally
 around the time. We see that the displacement converges on \(1\).
@@ -383,38 +371,34 @@ Nice, we converge to \(0\) just before the revival.
 Now, how does this play out in the super-ohmic case?
 #+begin_src jupyter-julia
   let
-      params = @set full_prototype.ε_shift = -.035
-      @reset params.spectral_density.α = 1.5
+      params = @set full_prototype.spectral_density.α = 1.5
       @reset params.u = .5
-      H = hamiltonian(0, ModelParameters(params))
-      ψ_A = [1; zeros(num_bath_modes(prototype))]
-      energies = eigvals(H)
-      overlaps = (ψ_A' * eigvecs(H) .|> abs)'
-      bar(energies, overlaps, xlabel="E", ylabel="Overlap with A")
+      params = auto_shift_bath(params, 0)
+      plot_A_overlap(params)
   end
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/47fe2f16445c3cca0d7515e64c3d3c0f4ca729b4.svg]]
+[[file:./.ob-jupyter/a511b2b64744dbe36fdd8139d474002b46f0a4b7.svg]]
 We see that the modification of the other levels is way smaller ->
 this is likely because the coupling relative to the energy gap does
-not converge. Still, we're able to close the gap :).
+not converge. Still, we're able to close the gap :). 
 
 
 #+begin_src jupyter-julia
   let
-      params = @set full_prototype.ε_shift = -.035
-      @reset params.spectral_density.α = 1.5
-      @reset params.u = 2
+      params = @set full_prototype.spectral_density.α = 1.5
+      @reset params.u = .5
+      params = auto_shift_bath(params, 0)
       plot_overview(params, 1500)
   end
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/0c432981d3a1a3537c8ab553bc5a275a10e6d879.svg]]
+[[file:./.ob-jupyter/cfaa925d790ca3e152e2c7b6ac3411fc6b89cd1a.svg]]
 Revival time seems stable-ish. And the mean displacement is now
 different from one. Interestingly the behavior after the revival
-change s kind of drastically. 
+change s kind of drastically.
 
 * Revivals
 :PROPERTIES:
@@ -539,6 +523,9 @@ Seems to be harder. But sometwhere between the median and the minimum
 seems good.
 
 * Automating the Shifting
+:PROPERTIES:
+:ID:       3d0ef165-f808-4415-ac42-f1b2e64ea7fe
+:END:
 Generically, we have to shift the bath to lower energies to close the
 gap in the spectrum.
 
@@ -620,17 +607,34 @@ How does it look like for different \(α\)?
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/c617a6c6db0fff81fd3f4aca409eb27f6d4dab69.svg]]
+[[file:./.ob-jupyter/d50482b33dd40062eafcd15c4d89d16bf2e56ea8.svg]]
 Interestingly, the shift dependence on \(α\) is non-trivial.
 #+begin_src jupyter-julia
   let
-      shift(α) = optimal_bath_shift((@set full_prototype.spectral_density.α = α) |> ModelParameters, 0)
-      plot(shift, 0.01, 2, xlabel="α", ylabel="bath shift")
+      params = @set full_prototype.spectral_density.J = 1e-3
+      @reset params.N = 100
+      params_fun = @parametrize_properties(params, spectral_density.α, spectral_density.J, ε_shift)
+      shift(args...) = optimal_bath_shift(params_fun(args...) |> ModelParameters, 0, ε=.00001)
+
+      p = plot()
+      for (c,J) in enumerate([1e-2, 1e-3, 1e-4])
+          norm = shift(0.01, J)
+          norm_lamb =  params_fun(.01, J, norm) |> lamb_shift
+          plot!(α -> shift(α, J)/norm, 0.01, 2, xlabel="α", ylabel="bath shift", label="J = $(J)", color=c)
+          plot!(α -> (params_fun(α, J, shift(α,J)) |> lamb_shift) / norm_lamb, 0.01, 2, xlabel="α", ylabel="bath shift", label="residual lamb_shift J = $(J)", linestyle=:dash, color=c)
+      end
+      #shift(1.5)
+      p
   end
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/e2894f609af226248de8f463f9b75f21335c99f9.svg]]
+[[file:./.ob-jupyter/cebf4a6c039fcea03153a1152714f65df6b30aaa.svg]]
+
+Generally, we see that the required shift decreases with rising \(α\).
+This is at least somewhat indicated in the perturbative calculation.
+At the same time, the residual lamb shift decreases.
+
 #+begin_src jupyter-julia
   let
       baseline = optimal_bath_shift(full_prototype, 0)
@@ -652,6 +656,24 @@ significantly. Even worse, the green curve shows, that the shift at
 
 We will see below however, that this overcompensation still produces
 OK results.
+
+How does the overlap diagram look like?
+#+begin_src jupyter-julia
+  let
+      ks = LinRange(0, π, 5)
+      params = auto_shift_bath(full_prototype, 0)
+
+      plots = map(ks) do k
+          plot_A_overlap(params, k)
+          plot!(title="\$k=$(round(k/π, sigdigits=2)) π\$", label=false)
+      end
+      plot(plots..., size=(1500, 500))
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/80bbec4bc6fae6e34bd6f13a0799eb114b82931a.svg]]
+
 
 ** Phase Diagram with "Overcompensation"
 :PROPERTIES:
@@ -707,6 +729,9 @@ longer than the revival time. For stronger coupling, we destroy the
 phase transtition, as the lamb shift can't be compensated.
 
 ** Phase Diagram with "Undercompensation"
+:PROPERTIES:
+:ID:       d7f03681-3366-4314-b0db-655ed0808dfa
+:END:
 We now explore what happens, if we choose to shift by the smalles
 amount possible.
 
@@ -726,14 +751,236 @@ The results are /worse/ compared to [[id:f0b8a81b-3996-430c-b7d9-b2e6beb58586][P
 "Overcompensation"]]. The maximum mean displacement is nowhere near
 \(1\) and the transition is much less sharp.
 
+Lookiong at \(∂_k ϕ(k)\)
+#+begin_src jupyter-julia
+  let
+      p = plot(xlabel = raw"$k$", ylabel=raw"$|∂_k \phi|$")
+      for params in scan_setproperties(prototype, u=[.1, 1, 1.1, 2])
+          plot!(p, k -> dϕ(k, params) |> abs, 0, 2π, label="\$u=$(params.u)\$")
+      end
+      p
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/707af401f6066fa935e990ad44e3190b16afa8dc.svg]]
+we see, that curiously the derivative is largest at π and nevertheless
+we still get best results for shifts that remove the lamb shift at
+\(k=0\). Maybe it is important to be immersed in the bath.
+
 ** Behavior around the Critical \(α\)
+:PROPERTIES:
+:ID:       a1677056-4e9f-4596-96a3-fa62f626471f
+:END:
 The phase transtion around \(α= 1\) suffers from finite-size
 effects. Let's explore their origin.
 
+So we see that for at least some values of \(k\) there is no
+convergence towards zero.
+#+begin_src jupyter-julia
+  ρ_A_k_overview(0.5, 0, full_prototype)
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/ea82041dbee6527862fbb4827817232e05a87ad0.svg]]
+
+Interestingly, if we remove the lamb shift at \(k=π\) we get no
+convergence whatsoever even at \(k=π\).
+#+begin_src jupyter-julia
+  ρ_A_k_overview(0.5, π, full_prototype)
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/d2c33625133519d58bd2b8abafb6eb789cf3a812.svg]]
+This is simply a coupling strength effect. When we turn up the
+coupling strength, we get what we want.
+#+begin_src jupyter-julia
+  ρ_A_k_overview(0.5, π,  @set full_prototype.spectral_density.J = .01*6)
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/f540b37f76a40915e8dc3d08b815fdf3113fa638.svg]]
+Now the \(k=π\) curve goes to zero.
+
+
+At \(α=.9\), we can observe, that there is not enough time for convergence.
+#+begin_src jupyter-julia
+  ρ_A_k_overview(0.9, 0, full_prototype)
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/e395996b5eef4f606825e6a74f111c6181e947d6.svg]]
+
+
+With \(10^3\) bath levels, the story looks clearer.
+#+begin_src jupyter-julia
+  ρ_A_k_overview(0.9, 0, (@set full_prototype.N = 1000))
+#+end_src
+
+#+RESULTS:
+
+[[file:./.ob-jupyter/2f2e3a7689d85221a1de1da5800418e2aeb8b162.svg]]
+
+And what happens for these many modes at \(α=0\)?
+#+begin_src jupyter-julia
+  ρ_A_k_overview(0, 0, (@set full_prototype.N = 1000))
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/bca2a7ddd497d32b8fec84769f56ea6c2532cb77.svg]]
+
+Nothing spectacular, except for better convergence. Interestingly some
+\(k\) values do not converge to \(0\), whereas this happens for \(α=.9\).
+
+
+For the supercritical \(α\) we get:
+#+begin_src jupyter-julia
+  ρ_A_k_overview(1.1, 0, (@set full_prototype.N = 1000))
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/b314c63e493ebb938881929da2383019e15feaba.svg]]
+
+
+Rather surprisingly we still get convergence to zero.
+We still observe a steady convergence to zero. It is just slower for
+higher values of \(N\).
+
+
+Thi s also works for \(α=1.5\)
+#+begin_src jupyter-julia
+  ρ_A_k_overview(1.5, 0,  @set full_prototype.N = 1000)
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/eb0ed12ab23f8396df9796a53f02e9404f03e9af.svg]]
+
+Or even higher values
+#+begin_src jupyter-julia
+  ρ_A_k_overview(2, 0,  @set full_prototype.N = 1000)
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/8015bf0808fe14784f9911a5ee0c7b1c2edc4c32.svg]]
+
+The same trend is exhibited. Does this mean, thta the coupling is too
+strong?
+
+How does the mean displacement look?
+I've used the exponential spacing here exploit
+the longer recurrence time.
 #+begin_src jupyter-julia
   let
-      params = @set full_prototype.ε_shift = -.058
-      @reset params.discretization = ExponentialBathDiscretization
-      plot_overview(params, 1500)
+      p = plot(xlabel = "t", ylabel = raw"$\langle m\rangle$")
+      for α in [.9, 1.1]
+          params = @set full_prototype.spectral_density.α = α
+          @reset params.N = 1000
+          params = auto_shift_bath(params, 0)
+
+          T = recurrence_time(params)
+          plot!(LinRange(.9 * T, 1.1 * T, 10), t->mean_displacement(t, params |> ModelParameters), label="\$α=$(α)\$")
+          #vline!([T], label="False")
+      end
+      p
   end
 #+end_src
+
+#+RESULTS:
+:RESULTS:
+[[file:./.ob-jupyter/f7faba3c027664cafa22659c3b096ea4a835bdfe.svg]]
+:END:
+
+It remains inconclusive whether the \(α=1.1\) line just converges slower,
+or if it really gives a diffrent result from the \(α=0.9\) case.
+
+It seems that the speed of convergence is playing a role here.
+
+#+begin_src jupyter-julia
+  let
+      params = @set full_prototype.discretization = ExponentialBathDiscretization
+      @reset params.N = 500
+
+      α = 1.1
+      # ρ_A_k_overview(α, 0, params)
+
+      @reset params.spectral_density.α = α
+      params = auto_shift_bath(params, 0)
+      model_params = params |> ModelParameters
+      plot(LinRange(recurrence_time(params) * .7, recurrence_time(params), 4), t->mean_displacement(t, model_params), label="mean displacement")
+      hline!([1], label=false)
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/a1629556892f1f0509e5d752867555ff22d8ec47.svg]]
+
+This seems like we converge to one still. This is likely due to the
+fact that we still have two A-like levels.
+
+This may be fixed if we don't shift all the way.
+#+begin_src jupyter-julia
+  let
+      α = 1.1
+      params = @set full_prototype.discretization = ExponentialBathDiscretization
+      @reset params.N = 500
+      @reset params.spectral_density.α = α
+
+      params = auto_shift_bath(params, 0, .8)
+      model_params = params |> ModelParameters
+      plot(LinRange(recurrence_time(params) * .5, .9 *recurrence_time(params), 4), t->mean_displacement(t, model_params), label="mean displacement")
+      hline!([1], label=false)
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/88e6827db393cd124656121833314b2b5fb557e4.svg]]
+I think without an analytic handle, we can't tell whether this is just
+slow convergence or the limit is actually smaller than one. It seems
+that the slightly less than maximal shift works but who knows.
+
+
+Maybe this is just a finite size or finite coupling effect.
+
+#+begin_src jupyter-julia
+  let
+      p = plot(xlabel = "α", ylabel = raw"$\langle m(T)\rangle$")
+      αs = LinRange(0, 2, 10) |> collect
+      ms = map(αs) do α
+          params = @set full_prototype.spectral_density.α = α
+          @reset params.N = 1000
+          #@reset params.spectral_density.J = .001
+          params = auto_shift_bath(params, 0, .8)
+
+          T = recurrence_time(params)
+          mean_displacement(.95T, params |> ModelParameters)
+      end
+      plot!(αs, ms, label=false)
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/7beb5964dd64749dcff0433bbb5125b0bf15f454.svg]]
+Appart from being washed out, the transition still takes place at
+approximately \(α=1\) when we have many nodes.
+
+Compared to no tweak of the shift
+
+#+begin_src jupyter-julia
+  let
+      p = plot(xlabel = "α", ylabel = raw"$\langle m(T)\rangle$")
+      αs = LinRange(0, 2, 10) |> collect
+      ms = map(αs) do α
+          params = @set full_prototype.spectral_density.α = α
+          @reset params.N = 1000
+          #@reset params.spectral_density.J = .001
+          params = auto_shift_bath(params, 0)
+
+          T = recurrence_time(params)
+          mean_displacement(.95T, params |> ModelParameters)
+      end
+      plot!(αs, ms, label=false)
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/7e6c22c25ff4605779135c13cc239d472b486966.svg]]

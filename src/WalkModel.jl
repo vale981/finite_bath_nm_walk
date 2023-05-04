@@ -240,6 +240,11 @@ end
 #                                                       sol(t)[2:end]
 #                                                   end).|> abs2 |> sum
 a_weight(t::Real, sol::WalkSolution)::Real = sol.vectors[1, :] ⋅ (exp.(complex.(0, -sol.energies * t))) |> abs2
+function a_weight(p::ExtendedModelParameters, k::Real = 0)
+    sol = WalkSolution(k, p |> ModelParameters)
+    return t -> a_weight(t, sol)
+end
+
 non_a_weight(t::Real, sol::WalkSolution)::Real = (1 / (2π) - abs2(sol(t)[1]))
 
 
@@ -286,10 +291,9 @@ function mean_displacement(t::Real, params::ModelParameters, m_0::Integer=0)
         end
     end
 
-    m, _ = hquadrature_v(integrand, 0, π, reltol=1e-2, abstol=1e-2)
+    m, _ = hquadrature_v(integrand, 0, π, reltol=1e-3, abstol=1e-3)
     2m
 end
-
 
 
 function limit(f::Function, x0::Real, x1::Real, δ::Real=1e-2)
@@ -491,7 +495,7 @@ end
 
 lamb_shift(params::ExtendedModelParameters, args...) = lamb_shift(ModelParameters(params), args...)
 
-function optimal_bath_shift(params::ModelParameters, k::Real, ε::Real = 1e-5, maxiter::Integer = 10_000)
+function optimal_bath_shift(params::ModelParameters, k::Real, correction::Real = 1; ε::Real = 1e-5, maxiter::Integer = 10_000)
     function target(shift::Real)
         ε_shifted = params.ε .+ shift
         p = @set params.ε = ε_shifted
@@ -521,7 +525,7 @@ function optimal_bath_shift(params::ModelParameters, k::Real, ε::Real = 1e-5, m
         end
     end
 
-    upper
+    correction * upper
 end
 
 optimal_bath_shift(params::ExtendedModelParameters, args...; kwargs...) = optimal_bath_shift(ModelParameters(params), args...; kwargs...)

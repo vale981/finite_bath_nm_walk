@@ -5,7 +5,11 @@ export plot_analytic_phase_diagram
 export plot_phase_diagram
 export plot_analytic_phase_diagram_born_v_exact
 export plot_overview
+export plot_ρ_A
 export scan_setproperties
+export plot_A_overlap
+export ρ_A_k_overview
+export @parametrize_properties
 
 using ..WalkModel
 import Plots: heatmap, hline!, vline!
@@ -13,9 +17,10 @@ import Statistics: mean
 using Plots
 import ConstructionBase: setproperties
 using Accessors: @set, @reset
+using LinearAlgebra
 
 function plot_analytic_phase_diagram(grid_N::Integer=50; α_limits::Tuple{Real,Real}=(0, 2), u_limits::Tuple{Real,Real}=(0, 2),
-    num_bath_modes::Integer=200, bath_discretization::Function=exponential_energy_distribution, coupling_strength::Real=0.01, ω_c::Real=1, ε_min::Real=0, integrand=integrand_diagonalization, T::Real=0, normalize::Bool = true)
+    num_bath_modes::Integer=200, bath_discretization::Function=exponential_energy_distribution, coupling_strength::Real=0.01, ω_c::Real=1, ε_min::Real=0, integrand=integrand_diagonalization, T::Real=0, normalize::Bool=true)
     displacement = Array{Float64}(undef, grid_N, grid_N)
 
     vv = 1
@@ -75,7 +80,7 @@ function plot_analytic_phase_diagram_born_v_exact(grid_N::Integer=50, α_limits:
             ε .-= ε_min
             params = ModelParameters(v=vv, u=u, ε=ε, g=g, sw_approximation=true)
 
-            ex_disp =  abs(analytic_time_averaged_displacement(params, integrand_diagonalization))
+            ex_disp = abs(analytic_time_averaged_displacement(params, integrand_diagonalization))
             ex_disp_norm = if ex_disp == 0
                 1
             else
@@ -94,24 +99,72 @@ function plot_analytic_phase_diagram_born_v_exact(grid_N::Integer=50, α_limits:
     p
 end
 
-function plot_overview(p::ExtendedModelParameters, T::Real, k::Real = 0)
+function plot_overview(p::ExtendedModelParameters, T::Real, k::Real=0)
     params = ModelParameters(p)
     sol = WalkSolution(k, params)
 
-    plot(t->mean_displacement(t, params), 0.1, T, label=raw"$\langle m\rangle$", xlabel="t", title="u=$(p.u), α=$(p.spectral_density.α), N=$(p.N)")
-    plot!(t->analytic_time_averaged_displacement(t, params), label=raw"$\overline{\langle m\rangle}$")
-    hline!(t->analytic_time_averaged_displacement(params), label=raw"$\overline{\langle m\rangle}(T=\infty)$")
+    plot(t -> mean_displacement(t, params), 0.1, T, label=raw"$\langle m\rangle$", xlabel="t", title="u=$(p.u), α=$(p.spectral_density.α), N=$(p.N)")
+    plot!(t -> analytic_time_averaged_displacement(t, params), label=raw"$\overline{\langle m\rangle}$")
+    hline!(t -> analytic_time_averaged_displacement(params), label=raw"$\overline{\langle m\rangle}(T=\infty)$")
 
-    plot!(t->a_weight(t, sol) * 2π, label="\$\\rho_A(k=$(k))\$")
+    plot!(t -> a_weight(t, sol) * 2π, label="\$\\rho_A(k=$(k))\$")
+end
+
+function plot_ρ_A(p::ExtendedModelParameters, T::Real, k::Real=0)
+    params = ModelParameters(p)
+    sol = WalkSolution(k, params)
+
+    plot(t -> a_weight(t, sol) * 2π, 0, T, xlabel="t", label="\$\\rho_A(k=$(k))\$")
 end
 
 plot_overview(params::ExtendedModelParameters, rest...) = plot_overview(ModelParameters(params), rest...)
 
 function scan_setproperties(strct::Any; kwargs...)
-      fields = collect(keys(kwargs))
-      vals = collect(values(kwargs))
+    fields = collect(keys(kwargs))
+    vals = collect(values(kwargs))
 
-      [setproperties(strct; Dict(zip(fields, current_values))...) for current_values in (Iterators.product(vals...))]
+    [setproperties(strct; Dict(zip(fields, current_values))...) for current_values in (Iterators.product(vals...))]
+end
+
+
+function splice_accessor(symbol, arg1)
+    Expr(:., symbol, QuoteNode(arg1))
+end
+
+function splice_accessor(symbol, arg1, arg2)
+    if isa(arg1, Expr)
+        Expr(:., splice_accessor(symbol, arg1.args...), arg2)
+    else
+        Expr(:., Expr(:., symbol, QuoteNode(arg1)), arg2)
+    end
+end
+
+macro parametrize_properties(strct::Any, args...)
+    names = map(_ -> gensym("arg"), args)
+    args = map(args) do spec
+        acc_args = if isa(spec, Expr)
+            spec.args
+        else
+            [spec]
+        end
+    end
+    arg_tuples = map(zip(names, args)) do (name, spec)
+        :($(name) = $(splice_accessor(esc(strct), spec...)))
+    end
+    function_args = Expr(:tuple, arg_tuples...)
+
+    tmp = gensym("strct")
+    assignments = map(zip(names, args)) do (name, arg)
+        acc = splice_accessor(tmp, arg...)
+        :($(tmp) = @set $(acc) = $(name))
+    end
+
+    Expr(:function, function_args, quote
+            local $(tmp) = $(esc(strct))
+            $(assignments...)
+
+            $(tmp)
+        end)
 end
 
 
@@ -132,7 +185,7 @@ function plot_phase_diagram(params::ExtendedModelParameters, grid_N::Integer=50;
             @reset current_params.u = u
 
             current_params = auto_shift_bath(current_params, shift_k)
-            displacement[i, j] = mean_displacement(recurrence_time(current_params) * .95, current_params |> ModelParameters)
+            displacement[i, j] = mean_displacement(recurrence_time(current_params) * 0.95, current_params |> ModelParameters)
         end
     end
 
@@ -143,6 +196,26 @@ function plot_phase_diagram(params::ExtendedModelParameters, grid_N::Integer=50;
     hline!([1], label=false, color=:white)
 
     p
+end
+
+function plot_A_overlap(params::ModelParameters, k::Real=0)
+    H = hamiltonian(k, params)
+    ψ_A = [1; zeros(num_bath_modes(params))]
+    energies = eigvals(H)
+    overlaps = (ψ_A' * eigvecs(H) .|> abs2)'
+    bar(energies, overlaps, xlabel="E", ylabel="Overlap with A")
+end
+
+plot_A_overlap(params::ExtendedModelParameters, rest...) = plot_A_overlap(params |> ModelParameters, rest...)
+
+function ρ_A_k_overview(α::Real, k_shift::Real, params::ExtendedModelParameters)
+    params = auto_shift_bath(params, k_shift)
+    @reset params.spectral_density.α = α
+    plot(xlabel="t", title="\$α=$(params.spectral_density.α)\$, \$k_s=$(k_shift)\$, \$N=$(params.N)\$")
+    for k in LinRange(0, π, 4)
+        plot!(a_weight(params, k), 0, 1.2 * recurrence_time(params), label="\$ρ_A(k=$(round(k / π, sigdigits=2)) π)\$")
+    end
+    vline!([0.95 * recurrence_time(params)], label=false)
 end
 
 end
