@@ -181,7 +181,7 @@ function hamiltonian(k::Real, params::ModelParameters)::Matrix{<:Number}
     H_bath = diagm(0 => params.ε)
 
     if params.sw_approximation
-        g = v_complex / abs(params.v * sqrt(params.u^2 + 1)) * params.g
+        g = v_complex .* params.g
 
         [0 g'
             g H_bath]
