@@ -12,6 +12,7 @@ export ρ_A_k_overview
 export @parametrize_properties
 
 using ..WalkModel
+using LaTeXStrings
 import Plots: heatmap, hline!, vline!
 import Statistics: mean
 using Plots
@@ -103,11 +104,11 @@ function plot_overview(p::ExtendedModelParameters, T::Real, k::Real=0)
     params = ModelParameters(p)
     sol = WalkSolution(k, params)
 
-    plot(t -> mean_displacement(t, params), 0.1, T, label=raw"$\langle m\rangle$", xlabel="t", title="u=$(p.u), α=$(p.spectral_density.α), N=$(p.N)")
-    plot!(t -> analytic_time_averaged_displacement(t, params), label=raw"$\overline{\langle m\rangle}$")
-    hline!(t -> analytic_time_averaged_displacement(params), label=raw"$\overline{\langle m\rangle}(T=\infty)$")
+    plot(t -> mean_displacement(t, params), 0.1, T, label=L"$\langle m(t)\rangle$", xlabel=L"$t$", title=L"$u=%$(p.u)$, $\alpha=%$(p.spectral_density.α)$, $N=%$(p.N)$")
+    plot!(t -> analytic_time_averaged_displacement(t, params), label=L"$\langle m\rangle$ running")
+    hline!(t -> analytic_time_averaged_displacement(params), label=L"$\langle m\rangle$")
 
-    plot!(t -> a_weight(t, sol) * 2π, label="\$\\rho_A(k=$(k))\$")
+    plot!(t -> a_weight(t, sol) * 2π, label=L"$\rho_A(k=%$(k))$")
 end
 
 function plot_ρ_A(p::ExtendedModelParameters, T::Real, k::Real=0)
@@ -203,7 +204,7 @@ function plot_A_overlap(params::ModelParameters, k::Real=0)
     ψ_A = [1; zeros(num_bath_modes(params))]
     energies = eigvals(H)
     overlaps = (ψ_A' * eigvecs(H) .|> abs2)'
-    bar(energies, overlaps, xlabel="E", ylabel="Overlap with A")
+    bar(energies, overlaps, ylabel="Overlap with A", xlabel=raw"$E$")
 end
 
 plot_A_overlap(params::ExtendedModelParameters, rest...) = plot_A_overlap(params |> ModelParameters, rest...)

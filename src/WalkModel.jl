@@ -74,6 +74,9 @@ are arrived at."""
     """Whether the system should simulated in the Schrieffer-Wolff
        approximation."""
     sw_approximation::Bool = false
+
+    """Energy of the A site"""
+    ω_A::Real = 0
 end
 
 
@@ -120,7 +123,6 @@ Instead of specifying the bath spectrum and coupling directly, these values are 
     """The site energy detuning."""
     ω::Real = 0.1
 
-
     spectral_density::OhmicSpectralDensity = OhmicSpectralDensity(1, 0.01, 1)
 
     N::Integer = 10
@@ -128,17 +130,17 @@ Instead of specifying the bath spectrum and coupling directly, these values are 
 
     normalize::Bool = true
 
-    ε_shift::Real = 0
-
     """Whether the system should simulated in the Schrieffer-Wolff
        approximation."""
     sw_approximation::Bool = false
+
+    ω_A::Real = 0
 end
 
 function ModelParameters(p::ExtendedModelParameters)
     ε, g = discretize_bath(p)
 
-    ModelParameters(p.v, p.u, p.ω, ε, g, p.sw_approximation)
+    ModelParameters(p.v, p.u, p.ω, ε, g, p.sw_approximation, p.ω_A)
 end
 
 function convert(::Type{ModelParameters}, p::ExtendedModelParameters)
@@ -183,13 +185,13 @@ function hamiltonian(k::Real, params::ModelParameters)::Matrix{<:Number}
     if params.sw_approximation
         g = v_complex .* params.g
 
-        [0 g'
+        [params.ω_A g'
             g H_bath]
     else
         V = [0 conj(v_complex)
             v_complex 0]
 
-        H_AB = [0 0; 0 params.ω]
+        H_AB = [params.ω_A 0; 0 params.ω]
 
         H_system_bath = [zeros(num_bath_modes(params))'
             (params.g)']
@@ -225,6 +227,8 @@ function WalkSolution(k::Real, params::ModelParameters, m_0::Integer=0)
     WalkSolution((coefficients' .* vectors), energies, params)
 end
 
+WalkSolution(k::Real, params::ExtendedModelParameters, m_0::Integer=0) = WalkSolution(k, params |> ModelParameters, m_0)
+
 """
    (WalkSolution)(t)
 
@@ -240,7 +244,7 @@ end
 #                                                       sol(t)[2:end]
 #                                                   end).|> abs2 |> sum
 a_weight(t::Real, sol::WalkSolution)::Real = sol.vectors[1, :] ⋅ (exp.(complex.(0, -sol.energies * t))) |> abs2
-function a_weight(p::ExtendedModelParameters, k::Real = 0)
+function a_weight(p::ExtendedModelParameters, k::Real=0)
     sol = WalkSolution(k, p |> ModelParameters)
     return t -> a_weight(t, sol)
 end
@@ -248,7 +252,7 @@ end
 non_a_weight(t::Real, sol::WalkSolution)::Real = (1 / (2π) - abs2(sol(t)[1]))
 
 
-function discretize_bath(scheme::Type{<:BathDiscretization}, J::OhmicSpectralDensity, N::Integer, normalize::Bool=true, ε_shift::Real=0)
+function discretize_bath(scheme::Type{<:BathDiscretization}, J::OhmicSpectralDensity, N::Integer, normalize::Bool=true)
     xk, ε = find_nodes_and_energies(scheme, J, N)
 
     J_int = OhmicSpectralDensityIntegral(J)
@@ -259,11 +263,9 @@ function discretize_bath(scheme::Type{<:BathDiscretization}, J::OhmicSpectralDen
         g *= J.J
     end
 
-    ε .+= ε_shift
-
     ε, sqrt.(g)
 end
-discretize_bath(p::ExtendedModelParameters) = discretize_bath(p.discretization, OhmicSpectralDensity(p), p.N, p.normalize, p.ε_shift)
+discretize_bath(p::ExtendedModelParameters) = discretize_bath(p.discretization, OhmicSpectralDensity(p), p.N, p.normalize)
 
 function find_nodes_and_energies(::Type{LinearBathDiscretization}, J::OhmicSpectralDensity, N::Integer)
     Δ = J.ω_c
@@ -495,17 +497,17 @@ end
 
 lamb_shift(params::ExtendedModelParameters, args...) = lamb_shift(ModelParameters(params), args...)
 
-function optimal_bath_shift(params::ModelParameters, k::Real, correction::Real = 1; ε::Real = 1e-5, maxiter::Integer = 10_000)
+function optimal_bath_shift(params::ModelParameters, k::Real, correction::Real=1; ε::Real=1e-5, maxiter::Integer=10_000)
     function target(shift::Real)
         ε_shifted = params.ε .+ shift
-        p = @set params.ε = ε_shifted
+        p = @set params.ω_A = ε_shifted
         lamb_shift(p, k, false)
     end
 
-    scale = (params.ε .|>abs |> maximum)
+    scale = (params.ε .|> abs |> maximum)
 
-    upper = 0
-    lower = -scale
+    upper = scale
+    lower = 0
     mid = 0
 
     iters::Integer = 0
@@ -531,11 +533,11 @@ end
 optimal_bath_shift(params::ExtendedModelParameters, args...; kwargs...) = optimal_bath_shift(ModelParameters(params), args...; kwargs...)
 
 function auto_shift_bath(params::ExtendedModelParameters, args...; kwargs...)
-    @set params.ε_shift = optimal_bath_shift(params, args...; kwargs...)
+    @set params.ω_A = optimal_bath_shift(params, args...; kwargs...)
 end
 
 function recurrence_time(p::ModelParameters)::Real
-    2π/minimum(p.ε[begin+1:end] - p.ε[begin:end-1])
+    2π / minimum(p.ε[begin+1:end] - p.ε[begin:end-1])
 end
 
 recurrence_time(p::ExtendedModelParameters) = recurrence_time(p |> ModelParameters)

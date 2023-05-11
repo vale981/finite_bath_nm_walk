@@ -13,10 +13,12 @@
   using .WalkModel
   Revise.includet(srcdir("Utilities.jl"))
   using .Utilities
+  import PGFPlotsX
+  pgfplotsx()
 #+end_src
 
 #+RESULTS:
-: [32m[1m  Activating[22m[39m project at `~/Documents/org/roam/data/c4/5097d2-2599-426d-82db-6ecfb5207151`
+: Plots.PGFPlotsXBackend()
 
 
 #+begin_src jupyter-julia
@@ -27,7 +29,7 @@
       α = 0.5
       ω_c = 1
       N = 100
-      p = ExtendedModelParameters(v, u, 0, OhmicSpectralDensity(ω_c, J, α), N, LinearBathDiscretization, true, 0, true)
+      p = ExtendedModelParameters(v, u, 0, OhmicSpectralDensity(ω_c, J, α), N, LinearBathDiscretization, true, true, 0.)
 
       p, ModelParameters(p), OhmicSpectralDensity(p)
   end
@@ -42,6 +44,7 @@
 :   ε: Array{Float64}((100,)) [0.005, 0.015, 0.025, 0.035, 0.045, 0.055, 0.065, 0.075, 0.085, 0.095  …  0.905, 0.915, 0.925, 0.935, 0.945, 0.955, 0.965, 0.975, 0.985, 0.995]
 :   g: Array{Float64}((100,)) [0.00316227766016838, 0.004276011137434268, 0.004865927761445336, 0.005295136992839155, 0.005639450228079817, 0.005930091541620684, 0.006183300672580194, 0.0064087111188735795, 0.0066125509465186595, 0.006799100382906402  …  0.011945587069691553, 0.011978450233698779, 0.012011045118058816, 0.012043376778098804, 0.01207545012104379, 0.012107269911870704, 0.012138840778872466, 0.012170167218950265, 0.0122012536026469, 0.012232104178940925]
 :   sw_approximation: Bool true
+:   ω_A: Float64 0.0
 : 
 
 We rename this function, because of compatibility.
@@ -326,12 +329,16 @@ At first, this doesn't seem too helpful. Let's contrast it with the
 behavior for the unshifted bath.
 #+begin_src jupyter-julia
   let
-      plot_overview(full_prototype, 1000)
+      params = @set full_prototype.N = 100
+      p = plot_overview(params, 100)
+      savefig(plotsdir("overview_unshifted.tikz"))
+      p
   end
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/d9945c1c006fa6484b79fa5f69f8f1709b2b1416.svg]]
+[[file:./.ob-jupyter/57efa9c9cd84728910c539ba85d8f6a42e4d838e.svg]]
+
 That certainly is a difference. **Revivals still happen at the same time**
 
 And for \(u<1\).

@@ -18,525 +18,13 @@ headinclude=true,footinclude=false,BCOR=0mm]{scrartcl}
 \DeclareAcronym{mlong}{short=LTAD, long=long-time time-averaged mean displacement}
 \DeclareAcronym{rwa}{short=RWA, long=Rotating-Wave Approximation}
 
-\title{Report on the Reservoir Engineering Efforts}
+\title{The non-Markovian Quantum Walk for Finite Baths}
 \date{2023}
+\graphicspath{{plots}}
 
 \begin{document}
 \maketitle
 \tableofcontents
-
-\section{Equations of Motion for a Modulated Fiber Loop}
-\label{sec:equat-moti-modul}
-\subsection{Introduction}
-\label{sec:introduction}
-To obtain an equation of motion for the electric field that can be
-interpreted as a Hamiltonian, we have to reduce the wave equation to
-first order in time. Here we work with the paraxial approximation,
-ignoring any transverse fields. A more rigorous treatment, to be used
-in numeric simulations, can be derived from wave guide theory as
-in~\refcite{Yuan2018a,Haus1984}.
-
-We ultimately want to treat a ring modulator with a space and time
-dependent refractive index \(n = n_{0} + n_{1}(\vb{r}, t)\) with
-\(n_{1}\ll n_{0}\). This situation is close to the case where
-\(n_{1}=0\) where the wave equation can be solved by a plane-wave
-ansatz.
-
-To capture near-adiabatic deviations from these solutions, we split off
-the fast time evolution of the electric field
-\begin{equation}
-  \label{eq:1}
-  \vb{E}(\vb{r}, t) = \vb{E}_{0}(\vb{r}, t) \eu^{-\i ω t},
-\end{equation}
-where \(ω\) is as yet undetermined. Now, we \emph{assume} that
-\(\dot{\vb{E}}_{0}\sim Ω \cdot\vb{E}_{0}\) with a characteristic
-frequency \(Ω \ll ω\). This assumption will have to be verified in the
-final result to guarantee consistency. We define the small parameter
-\(δ = \frac{Ω}{ω} \ll 1\) for convenience.
-
-For our purposes the magnetic permeability is constant \(μ=μ_{0}\),
-whereas the permittivity \(ε(\vb{r}, t)\) is time dependent with
-\(\dot{ε} \sim Ω ε\). As we are not taking spatial derivatives of
-\(ε\), the spatial argument will be suppressed in the following.
-
-The electric field is real valued, although we do not explicitly take
-the real part for now.
-
-\subsection{A Perturbative Maxwell Equation for a Slowy Changing
-  Envelope}
-\label{sec:pert-maxw-equat}
-Applying a second curl to the Maxwell equation\footnote{Which is the
-  canonical way to derive the wave equation.} \(\nabla \times\vb{E} =
-- ∂_{t}\vb{{B}}\) leads to
-\begin{equation}
-  \label{eq:2}
-  \begin{aligned}
-    \nabla \times (\nabla \times \vb{E}) &= -{\nabla}^{2} \vb{E} =
-    -∂_{t}\bqty{\mu ∂_{t}\pqty{ε\vb{E}}}=-\mu\pqty{\ddot{ε} \vb{E} + 2
-                                           \dot{ε}\dot{\vb{E}} + ε \ddot{\vb{E}}} \\
-    &= -μ ω^{2} \bqty{\underbrace{-ε\vb{E}_{0}}_{\sim δ^{0}} + \underbrace{2 \frac{\dot{ε}}{ω}
-      \vb{E}_{0} -
-      2\iu \frac{ε}{ω}\dot{\vb{E}}_{0}}_{\sim δ^{1}} + \underbrace{2 \frac{\dot{ε}}{ω^{2}}
-      \dot{\vb{E}}_{0} + \frac{ε}{ω^{2}}\ddot{\vb{E}}_{0}}_{\sim δ^{2}}}\eu^{-\iu ω t}
-  \end{aligned}
-\end{equation}
-
-Up to this point we have not made any approximation. We now proceed to
-drop the terms of second order in \(δ\).
-
-This leaves us with
-\begin{equation}
-  \label{eq:3}
-  \nabla^{2}\vb{E}_{0} = μ ω^{2} \bqty{\pqty{\frac{2\dot{ε}}{ω} - ε}
-    \vb{E}_{0} - \frac{2 \iu ε}{ω} \dot{\vb{E}}_{0}} = \frac{n^{2} ω^{2}}{c^{2}} \bqty{\pqty{\frac{4\dot{n}}{nω} - 1}
-    \vb{E}_{0} - \frac{2 \iu }{ω} \dot{\vb{E}}_{0}},
-\end{equation}
-with \(n=\sqrt{ε μ} c\) which can be rearranged into a form that resembles the
-Schr\"odinger equation
-\begin{equation}
-  \label{eq:4}
-  \iu ∂_{t}\vb{E}_{0} =  - \frac{c^{2}}{2 n^{2} ω} \nabla^{2}\vb{E}_{0} +
-  \frac{1}{2}\pqty{\frac{4\dot{n}}{n}-ω}
-  \vb{E}_{0}.
-\end{equation}
-Note however, that the ``mass'' \(ωn^{2}/c^{2}\) in the kinetic term is not
-constant, giving rise to non hermitian dynamics. This is an artifact
-of neglecting orders of \(δ\). We will find however, that in the
-situation investigated in \cref{sec:modul-small-port} the violation of
-Hermiticity is negligible.
-
-In contrast to the result in \cite{Dutt2019}, \cref{eq:4} is still
-second order in space and, provided \(ε\) is real, hermitian.
-
-\subsection{Application to a Ring Resonator}
-\label{sec:appl-ring-reson}
-As we are describing a fiber ring of radius \(R\) it is convenient to
-work in cylindrical coordinates \((ρ, ϕ, z)\). We are interested in
-the electric field at the center of the fiber and assume that it does
-not vary much in the transversal directions. Thus, we neglect the
-dependence of the field on the \(z\) and \(ρ\) directions and make an
-ansatz \(\vb{E}_{0} = E(ϕ, t, ρ=R)\hat{\vb{z}}\).
-
-To satisfy the boundary condition \(E(t, 0) = E(t, 2π)\) \(\forall
-t\), we expand the field into a Fourier series
-\begin{equation}
-  \label{eq:6}
-  E(ϕ, t) = ∑_{m=-∞}^{+∞} C_{m} a_{m}(t) \eu^{\iu m ϕ},
-\end{equation}
-with \(C_{m}\) chosen appropriately later, so as to make the \(a_{m}\)
-dimensionless. Note that to obtain the \(a_{m}\) of \cite{Dutt2019}
-one has to make the substitution \(a_{m}(t) \to a_{-m}(t)\).
-
-In the case of a constant refractive index \(n_{0}\), the modes solve
-the ordinary wave equations so that
-\(a_{m}\sim \eu^{\iu (mϕ - ω_{m}t)}\) with\footnote{This also deviates
-  from \cite{Dutt2019}. There \(m\geq 0\) and also the negative \(ω\)
-  solutions are missing. One has to include either one or the other to
-  capture all solutions. The reason for this lies their explicit
-  construction of a real solution. However, the fact that frequencies
-  with a different sign relative to the wave vector exist is not
-  captured by their first order differential equation.}
-\(ω_{m} = \pm \frac{m c}{R n_{0}}\).  Applying the procedure of
-\cref{sec:pert-maxw-equat}, but to each of the mode amplitudes
-\(a_{m}=b_{m}\eu^{-\iu ω_{m}t}\) (with \(ω_{m}\) as yet unspecified)
-we find
-\begin{equation}
-  \label{eq:7}
-  \begin{aligned}
-    \frac{1}{R^{2}} ∑_{m=-∞}^{+∞} C_{m} b_{m}(t)\eu^{-iω_{m}t} ∂_{ϕ}^{2}\eu^{\iu m ϕ}
-    &=  \frac{-1}{R^{2}} ∑_{m=-∞}^{+∞} C_{m}m^{2} b_{m}(t) \eu^{\iu (m ϕ-ω_{m}t)}\\
-    &= ∑_{m=-∞}^{+∞}C_{m}\frac{n^{2} ω_{m}^{2}}{c^{2}} \bqty{\pqty{\frac{4\dot{n}}{nω_{m}} - 1}
-    b_{m}(t) - \frac{2 \iu }{ω_{m}} \dot{b}_{m}(t)}\eu^{\iu (m ϕ-ω_{m}t)}.
-  \end{aligned}
-\end{equation}
-
-In the limit \(\dot{n}\to 0 \implies n(ϕ,t) = n_{0}=\mathrm{const}\)
-we should recover \(\dot{b}_{m}=0\), which implies
-\begin{equation}
-  \label{eq:8}
-  ω_{m}^{2}=\pqty{\frac{mc}{Rn_{0}}}^{2} \implies ω_{m} = \pm
-  \abs{\frac{mc}{Rn_{0}}}= \pm
-  \abs{m Ω},
-\end{equation}
-which defines the \(ω_{m}\) in this case. However, to correctly
-determine the \(ω_{m}\), a slightly more delicate argument has to be
-made.
-
-
-Evaluating the \(∂_{ϕ}\) derivative, rearranging, applying
-\((2π)^{-1}\int_{0}^{2π}\dd{ϕ} \eu^{-\iu l ϕ}\) and defining \(n(ϕ,t)
-= n_{0} + n_{1}(ϕ, t)\) yields
-\begin{equation}
-  \label{eq:9}
-  \dot{b}_{l}=-\iu ∑_{m}\bqty{κ_{lm} + γ_{lm}}\eu^{-\iu (ω_{m}-ω_{l}) t}b_{m},
-\end{equation}
-with
-\begin{align}
-  κ_{lm}&= \frac{C_{m}}{4π
-          ω_{l}C_{l}}∫_{0}^{2π}\pqty{\frac{m^{2}c^{2}}{n^{2}R^{2}} - ω_{m}^{2}}\eu^{\iu(m-l) ϕ}\dd{ϕ}  \overset{\cref{eq:8}}{=}
-          A_{lm} ∫_{0}^{2π}\pqty{\frac{n_{0}^{2}}{n^{2}} - 1}\eu^{\iu(m-l)ϕ}\dd{ϕ}  \label{eq:10}\\
-  \label{eq:11}
-  γ_{lm}&= A_{lm}∫_{0}^{2π}\pqty{\frac{4\dot{n}(ϕ, t)}{ω_{m}n(ϕ,
-          t)}}\eu^{\iu(m-l) ϕ}\dd{ϕ}\\
-  \label{eq:12}
-  A_{lm}&=\frac{C_{m}ω_{m}^{2}}{4π
-          ω_{l}C_{l}}=\frac{1}{4π}\frac{C_{m}}{C_{l}}\frac{m^{2}}{l}\frac{c}{Rn_{0}} =\frac{1}{4π}\frac{C_{m}}{C_{l}}\frac{m^{2}}{l}Ω_{R}
-\end{align}
-which is a Sch\"odinger equation with the Hamiltonian
-\(H_{lm}=\bqty{κ_{lm} + γ_{lm}}\). The denominator of \cref{eq:12} may
-be cause for concern in the case that \(l=0\). This would imply
-\(ω_{l}=0\) which breaks our assumption \(δ\ll 1\). The sum over \(m\)
-in \cref{eq:6} should therefore exclude small \(m\).
-
-Note also that even in the \(\dot{n}=0\) case \cref{eq:10} does not
-vanish. The coupling of the modes originates from the (spatially
-modulated) deviation of \(n\) from \(n_{0}\). It is also clear, that
-the choice of \(n_{1}(ϕ,t)\) has to be made so that
-\(\int_{0}^{1}\abs{n_{0}^{2}/n_{1}^{2}-1}\dd{ϕ}\) is minimized to best
-approximate the condition \(δ\ll 1\) by minimizing \(κ_{lm}\) and
-justify the definition of the \(ω_{m}\). Remember that the \(ω_{m}\)
-are still free parameters and have to be chosen so that
-\({∂_{t}{b}_{m}}/{b_{m}}\sim δ \ll 1\).  In particular
-\(n_{1}(ϕ, t) = \mathrm{const}\) is not a valid choice. Preferably,
-one should define the \(ω_{m}\) to minimize the \(κ_{lm}\) in
-\cref{eq:10}. This also yields the exact solution in the
-\(n(ϕ,t)=\mathrm{const}\) case.
-
-For time independent \(n_{1}\) we can find suitable \(ω_{m}\) by
-minimizing
-\begin{equation}
-  \label{eq:15}
-  \bqty{∫_{0}^{2π}\pqty{\frac{m^{2}c^{2}}{n^{2}R^{2}} - ω_{m}^{2}}\dd{ϕ}}^{2}
-\end{equation}
-giving
-\begin{equation}
-  \label{eq:14}
-  ω_{m}^{2}= \frac{1}{2π} \frac{m^{2}c^{2}}{R^{2}} ∫_{0}^{2π}
-  n(ϕ)^{-2}\dd{ϕ}=\pqty{\frac{m c}{R n_{\mathrm{eff}}}}^{2},
-\end{equation}
-where \(n_{eff}^{-2}=(2π)^{-1}∫_{0}^{2π}n^{-2}\dd{ϕ}\). If \(n_{1}\)
-depends on time, one may use the long time average of \cref{eq:14}.
-
-
-\subsection{Modulation of a small portion of the ring.}
-\label{sec:modul-small-port}
-
-We now turn to the case of the modulation of a small angular portion
-\(ϕ_{W}\) of the ring. In such a case
-\begin{equation}
-  \label{eq:5}
-  n=n_{0}+n_{1}(t)\rect\pqty{\frac{ϕ}{ϕ_{W}}},
-\end{equation}
-where \(\rect(x)=Θ(1/4-x^{2})\) and \(Θ\) is the Heaviside step
-function. As the tangential components of the electric field are
-continuous, we face no problems on this front.
-
-If we further demand \(\abs{\max_{t} n_{1}(t)}\ll 1\) and \(\lim_{T\to
-∞} T^{-1} ∫_{0}^{T}n_{1}(t)\dd{t} = 0\) we can choose
-the \(ω_{n}\) as in \cref{eq:8}, as follows from \cref{eq:12}
-\begin{equation}
-  \label{eq:16}
-  ω_{m}^{2}=\lim_{T\to
-    ∞}\frac{1}{T}∫_{0}^{T}\frac{m^{2}c^{2}}{R^{2}}\bqty{\frac{1}{n_{0}^{2}}+ϕ_{W}\pqty{\frac{1}{n^{2}}-\frac{1}{n_{0}^{2}}}}\dd{t}
-  \approx \lim_{T\to
-    ∞}\frac{1}{T}∫_{0}^{T}\frac{m^{2}c^{2}}{R^{2}}\bqty{\frac{1}{n_{0}^{2}}
-    - 2ϕ_{W}\pqty{\frac{n_{1}(t)}{n_{0}}}}\dd{t} =\pqty{\frac{mc}{Rn_{0}}}^{2}.
-\end{equation}
-
-To connect to the result in \cite{Dutt2019}, we can then further
-evaluate \cref{eq:10}, using
-\(C_{m}=\sqrt{\frac{\hbar \abs{ω_{m}}}{4π R ε_{0}n_{0}^{2}}}\) to find
-\begin{equation}
-  \label{eq:17}
-  κ_{lm}=\frac{Ω_{R}ϕ_{W}\abs{l}^{-\frac{3}{2}}\abs{m}^{\frac{5}{2}}}{4π}
-  \pqty{\frac{n_{0}^{2}}{(n_{0}+n_{1}(t))^{2}}-1}\sinc\pqty{(m-l)\frac{ϕ_{W}}{2}}\sgn(l).
-\end{equation}
-
-Note that here, we introduced an additional sign compared to
-\cite{Dutt2019}, and we already transformed to a rotating frame.
-
-A slightly different choice of normalization
-\begin{equation}
-  \label{eq:13}
-  C_{m}=\frac{1}{m^{2}}\sqrt{\frac{\hbar \abs{ω_{m}}}{4π R
-      ε_{0}n_{0}^{2}}}
-\end{equation}
-makes \(κ_{lm}\) hermitian and reproduces the result of
-\cite{Dutt2019}
-\begin{equation}
-  \label{eq:18}
-  \begin{aligned}
-    κ_{lm}&=\frac{Ω_{R}ϕ_{W}\sqrt{ml}}{4π}
-            \pqty{\frac{n_{0}^{2}}{(n_{0}+n_{1}(t))^{2}}-1}\sinc\pqty{(m-l)\frac{ϕ_{W}}{2}}\sgn(l)\\
-    &\approx
-    \frac{Ω_{R}ϕ_{W}\sqrt{ml}}{2π}
-    \frac{n_{1}(t)}{n_{0}}\sinc\pqty{(m-l)\frac{ϕ_{W}}{2}}\sgn(l).
-  \end{aligned}
-\end{equation}
-
-As we are interested in the case where \(m,l\gg 1\) and
-\(m=M+δm\), \(l=M+δl\) with \(δm,δl\ll M\), the pre-factor of \(κ_{lm}\)
-can be regarded as constant either way, guaranteeing hermiticity.
-
-Note that compared to \cite{Dutt2019} we added an additional sign in
-\cref{eq:9} and swapped the index \(m,l\) with \(-m,-l\). This leads to
-\cref{eq:18} having the same sign as in this publication, rather than
-the opposite as one would expect from \cref{eq:9} alone.
-
-This constitutes a rigorous derivation of the result in that paper.
-
-
-Evaluating \cref{eq:11} yields
-\fixme{to be done}.
-
-\subsection{Open Questions}
-\label{sec:open-questions}
-
-It would be interesting to compute an explicit expression for the
-magnetic field as well. To do so would allow us to check the
-continuity for \(μ\vb{H}=\vb{B}\) and to compute the Poynting vector
-and give the modes a propagation direction. Of course this direction
-can be inferred from the \(n=n_{0}=\mathrm{const}\) case.
-
-It would also be of interest, to find out how good the paraxial
-approximation captures the real field at the center of the fiber.
-
-Lastly, the case of time independent \(n\) can likely be solved
-exactly fairly easily. It would be interesting to see how this
-solution relates to the equation found here.
-
-\section{Engineering Hamiltonians}
-\label{sec:engin-hamilt}
-
-Having obtained the basic equations of motion in
-\cref{sec:equat-moti-modul}, we now proceed to explore how to engineer
-model Hamiltonians out of this equation.
-
-\subsection{Notation and Preliminaries}
-\label{sec:notat-prel}
-
-
-Before we begin to detail procedures to obtain engineered
-Hamiltonians, a few notions concerning notation and the general
-assumptions will be introduced.
-
-On the physical level, we work with Fourier components \(b_{m}(t)
-\eu^{\iu (mϕ-ω_{m}t)}\) of
-the electric Field in the ring resonators in an appropriate frame.
-The amplitudes \(b_{m}\) can then be identified with a quantum state
-by defining
-\begin{equation}
-  \label{eq:19}
-  \ket{ψ} \equiv ∑_{m} b_{m}\ket{m}
-\end{equation}
-with \(\ket{m}\) being orthonormal unit vectors
-(\(\braket{m}{n}=δ_{mn}\)) in a Hilbert space \(\hilb\). This defines
-the fiducial basis in which the state can be measured by recording the
-slowly changing envelopes of the modes.
-
-In this language \cref{eq:9} (in the non-rotating frame) becomes
-\begin{equation}
-  \label{eq:20}
-  \iu ∂_{t}\ket{ψ} = H(t) \ket{ψ},
-\end{equation}
-with \(H_{mn}(t)= κ_{mn}(t)\eu^{-\iu{ω_{n}-ω_{m}}t}\) where we've neglected the \(γ_{mn}\)
-contribution from \cref{eq:11}. Let us also define
-\begin{equation}
-  \label{eq:21}
-  \begin{aligned}
-    [D(ω)]_{mn} &\equiv ω_{m} δ_{mn} & κ_{mn}(t) & \equiv Δ_{mn}
-                                                   \frac{n_{1}(t)}{n_{0}} \equiv Δ_{mn}\, f(t),
-  \end{aligned}
-\end{equation}
-where \(n(t) = n_{0} + n_{1}(t)\) with \(n_{1}\ll n_{0}\) as discussed
-in \cref{sec:modul-small-port}.
-
-The above may seem rather obvious, but a clarification of conventions
-is crucial.
-In that vein the Hamiltonian of \cref{eq:20} can be expressed as
-\begin{equation}
-  \label{eq:22}
-  H = H_{0} + V(t)
-\end{equation}
-with \(H_{0}=D(ω)\) and \(V(t)=Δ\, f(t)\).
-
-For practical reasons and in order for the assumptions of
-\cref{sec:pert-maxw-equat} to hold, we will always work with finite
-set of resonator modes, making our effective Hamiltonians finite
-dimensional. Further, it is assumed that we stimulate and modulate the
-system in such a way, that the boundary conditions in mode space are
-not important, so that they can be chosen at our convenience.  This
-means that we're only concerned with a finite subspace
-\(\hilb_{\mathrm{phys}} = \qty{\ket{m} \colon m\in
-  \bqty{{m_{0}-(N-1)/2},{m_{0} + (N-1)/2}}} \subset \hilb\).
-
-The goal is now to choose the geometry and the modulation so that
-the time evolution operator
-\begin{equation}
-  \label{eq:23}
-  \tevop{H} = \mathcal{T}\,\exp(-\iu ∫_{0}^{t}H(t))
-\end{equation}
-for the Hamiltonian \(H\) of \cref{eq:20} matches the time evolution
-operator for some reference Hamiltonian \(H_{\target}\)
-\begin{equation}
-  \label{eq:24}
-  \norm{\tevop{U H U^\dag}-\tevop{H_{\target}}} < ε
-  \iff \norm{\qty{\tevop{U H U^†}-\tevop{H_{\target}}}\ket{ψ}} \leq ε.
-\end{equation}
-for \(0\leq t\leq T\), where \(\norm{\cdot}\) on the left side is the
-operator norm restricted \(\hilb_{\mathrm{phys}}\), \(U\) is some
-unitary and \(ε>0\). The unitary \(U\) is allowing for a basis change
-relative to the physical basis \cref{eq:19}. We require unitary
-equivalence with the same unitary for all times. As
-\(\mathcal{U}_{t}[H]\) is invertible, it would be trivial to achieve
-perfect equivalence using a time dependent unitary
-\begin{equation}
-  \label{eq:25}
-  U(t)=\tevop{H_{\target}}\tevop{H_{\target}}^†.
-\end{equation}
-
-As transformations into rotating frames are necessary we have to
-loosen the requirement and allow those transformations as well. These
-transformations then amount to considering oscillatory linear
-combinations of the oscillator mode amplitudes.
-
-This ``problem'' does not occur in \cite{Dutt2019}, as there the
-response to a certain input is measured, yielding a band
-structure. This requires the actual Floquet energies \emph{in the
-  rotating frame} to match the eigenenergies of the target
-Hamiltonian. But if observables such as the mean displacement of a
-walker such as in \refcite{Ricottone2020} are to be computed, the
-measured quantity should be the amplitudes, or equivalently the state
-\(\ket{ψ}\). These should be obtained directly using only simple
-transformations such linear combinations (constant unitaries) and
-translation of the signals in frequency space (rotating frame). For if
-we knew the detailed dynamics induced \(H_{target}\) already, there
-would be little point in trying to simulate them in the first place
-and using an elaborate transformation such as \cref{eq:25} would
-defeat the point.
-
-
-It is useful to express the above in terms of an effective Hamiltonian
-\begin{equation}
-  \label{eq:26}
-  \heff{H}\equiv \frac{1}{-\iu t} \log[\tevop{H}].
-\end{equation}
-This Hamiltonian, similar to the Floquet Hamiltonian, has a spectrum
-limited by the branch cut of the complex logarithm, which however has
-no influence on the dynamics it generates. By continuity of the
-operator exponential the closeness
-\(\norm{\heff{H} -\heff{H_{\target}}}  \leq ε/t\) of the
-effective Hamiltonians implies the condition \cref{eq:24}. This
-representation lends itself particularly well to visualizations and
-numerical studies.
-
-If one is only interested in specific initial states, then one could
-specify the less strict requirement, that the evolution of these
-specific states should not deviate from the target.
-
-Another possibility to loosen restrictions would be to only demand the
-coincidence of the time evolution operators or the effective
-Hamiltonians for a specific time \(t\).
-
-\section{A Single Fiber Loop}
-\label{sec:single-fiber-loop}
-This section mostly follows~\refcite{Dutt2019}, focusing on how to
-engineer a one-dimensional tight-binding Hamiltonians with one orbital
-per unit cell,
-\begin{equation}
-  \label{eq:27}
-  H = ∑_{m,n=-M}^{M}t_{mn} \ketbra{m_{0}+m}{m_{0}+n}.
-\end{equation}
-
-There we employ periodic boundary conditions to simplify the
-calculations, so that \(\ket{m+N} = \ket{m}\) and
-\(t_{m,n}=\min_{l\in \ZZ}{\abs{m-n + l N}}\). Here, we choose
-\(N=2M +1\) for some \(M\in\NN\) and \(m_{0}\) so, that the relevant
-subspace \(\hilb_{\mathrm{phys}}\) is contained in it so that states within
-this subspace don't ``see'' the boundary at the relevant time scales.
-
-After transforming into a rotating frame with respect to the uncoupled
-modes of the ring, we obtain from \cref{eq:9} in the language of
-\cref{sec:notat-prel}
-\begin{equation}
-  \label{eq:28}
-  \begin{aligned}
-    H(t) &= \tilde{V}(t) & \pqty{\tilde{V}(t)}_{mn} =
-                           Δ_{{m_{0}+m},{m_{0}+n}} \,f(t) \eu^{-i(ω_{m_{0}+n}-ω_{m_{0}+m})t}.
-  \end{aligned}
-\end{equation}
-
-Neglecting dispersion and other constraints on the number of
-equidistant modes physically present in the fiber loop, we can assume
-that \cref{eq:28} represents our system, restricted to
-\(\hilb_{\mathrm{phys}}\) faithfully. We can then continue to note
-that \(ω_{m} = m Ω\) where \(Ω={{c}/{Rn_{0}}}\) is the free spectral
-range of the fiber loop. Further, as \(H_{mn}(t) = H_{m-n}(t)\) for
-\(m,n\) unrestricted\footnote{This is a choice of boundary condition
-  as explained in \cref{sec:notat-prel}. We assume that the states of
-  interest never venture outside of \(\hilb_{\mathrm{phys}}\).}
-implies that the Hamiltonian can be diagonalized by Fourier states
-\begin{equation}
-  \label{eq:30}
-  \ket{k} = \frac{1}{\sqrt{2π}}∑_{m} \eu^{\iu km}\ket{m},
-\end{equation}
-where \(k\in [-π,π]\).
-
-This Eigenbasis is independent in time making the Hamiltonian commute
-with itself at unequal times \(\comm{H(t)}{H(s)} = 0\, \forall t,s\),
-leading to a particularly simple form of the time evolution operator
-\begin{equation}
-  \label{eq:31}
-  \pqty{\tevop{H}}_{m,n} = \exp(-\iu  Δ_{{m_{0}+m},{m_{0}+n}} ∫_{0}^{t}
-  \,f(t) \eu^{-i(m-n)Ω t}\dd{t}).
-\end{equation}
-
-Assuming that \(f(t) = f(t+2π/Ω) = f(t+T)\) the corresponding Floquet
-Hamiltonian is
-\begin{equation}
-  \label{eq:29}
-  H_{F,mn} = \bqty{\heff[T]{H}}_{mn} = \frac{1}{T} Δ_{{m_{0}+m},{m_{0}+n}} ∫_{0}^{T}
-  \,f(t) \eu^{-i(m-n)Ω t}\dd{t} = Δ_{{m_{0}+m},{m_{0}+n}} c_{m-n},
-\end{equation}
-where \(c_{m-n}\) is the \((m-n)\)th (complex) Fourier coefficient of
-the drive
-\begin{equation}
-  \label{eq:33}
-  f(t) = ∑_{l\in \ZZ}\eu^{\iu l Ω t} c_{l}.
-\end{equation}
-This is a feature that may have been overlooked in
-\cite{Dutt2019}, as they only give a Floquet Hamiltonian in the \ac{rwa}.
-
-The Floquet theorem implies that \cref{eq:24} is valid once a period.
-
-To quantify the deviations from the Floquet dynamics \(\eu^{-\iu H_{F}
-  t}\) within each period \(T\), we consider the ``Kick Operator'' \cite{Viebahn}
-\begin{equation}
-  \label{eq:32}
-  \eu^{-i K(t)} = \tevop{H}\eu^{\iu H_{F} t},
-\end{equation}
-so that \(\ket{ψ(t)} = \eu^{-i K(t)}\eu^{-\iu H_{F} t}\ket{ψ(0)}\)
-with the property \(K(t+T)=K(t)\) and \(K(0)=K(nT)=0\).
-
-In the present we have
-\begin{equation}
-  \label{eq:34}
-  K_{mn}
-\end{equation}
-
-
-If we additionally demand that \(Ω\gg Δ_{m,n}f(t)\) we find that
-the kick operator
-
-
-
-\section{Measuring the State Amplitudes}
-\label{sec:meas-state-ampl}
-
-TBD
-
-\section{The non-Markovian Quantum Walk for Finite Baths}
-\label{sec:non-mark-quant}
 
 We will discuss how the behavior of the model introduced in
 \refcite{Ricottone2020} for the limit of weak coupling and an infinite
@@ -606,7 +94,7 @@ with
     ∞}\frac{1}{T} ∫_{0}^{T}\abs{\braket{A,k}{ψ(t)}}^{2}\dd{t}.
 \end{equation}
 
-\subsection{Born Approximation}
+\section{Born Approximation}
 \label{sec:born-approximation}
 
 In the limit of very weak coupling we can solve for \(ρ_{A}\) in terms
@@ -620,7 +108,7 @@ coupling \(V\).
 with the self-energy
 \begin{equation}
   \label{eq:43}
-  Σ(k,t)=-2 ∑_{j}\abs{η_{j}(k)}^{2}\cos(ω_{k}t)
+  Σ(k,t)=-2 ∑_{j}\abs{η_{j}(k)}^{2}\cos((ω_{k}-ω_{A})t)
 \end{equation}
 with \(j=\overline{1,N}\).
 
@@ -644,12 +132,12 @@ The equation of motion \cref{eq:42} gives direct access to
 with
 \begin{equation}
   \label{eq:46}
-  \tilde{Σ}(k, s) = -2 ∑_{j}\abs{η_{j}}^{2} \frac{s}{s^{2}+ω_{j}^{2}} =
-  -∑_{j}\abs{η_{j}}^{2} \bqty{\frac{1}{s+\iu ω_{j}} + \frac{1}{s-\iu
-      ω_{j}}}.
+  \tilde{Σ}(k, s) = -2 ∑_{j}\abs{η_{j}}^{2} \frac{s}{s^{2}+(ω_{j}-ω_{A})^{2}} =
+  -∑_{j}\abs{η_{j}}^{2} \bqty{\frac{1}{s+\iu (ω_{j}-ω_{A})} + \frac{1}{s-\iu
+      (ω_{j}-ω_{A})}}.
 \end{equation}
 
-Using \cref{eq:44}, this yields
+Using \cref{eq:44} and setting \(ω_{A}=0\), this yields
 \begin{equation}
   \label{eq:47}
   ρ_{A}(k) = \frac{1}{1 + 2∑_{j}\frac{\abs{η_{j}}^{2}}{ω_{j}^{2}}} =
@@ -675,12 +163,14 @@ of an ohmic-type spectral density
   \end{dcases}
 \end{equation}
 For \(α<(>)1\) this we call \(J\) a sub(super)-Ohmic spectral density,
-whereas for \(α=1\) we have an Ohmic spectral density.
+whereas for \(α=1\) we have an Ohmic spectral density. Let us define
+\(J_{α}=g_{0}^{2}\frac{α+1}{ω_{c}^{α+1}}\) for convenience.
+
 
 The \(ω_{j}\) and \(η_{j}\) may be chosen according to
 \cref{sec:discretization-bath}.
 
-In the continuum limit \(U_{A}\to ∞\) for \(α<=1\) and remains finite
+In the continuum limit \(U_{A}\to ∞\) for \(α\leq 1\) and remains finite
 for \(α>1\), which leads to the \ac{mlong} \(\ev{m}\) having a sharp
 transition from \(0\) to \(1\) for \(α\leq 1\) which becomes washed
 out for \(α>1\).
@@ -693,13 +183,173 @@ unlikely to be resolved experimentally.
 \section{Exact Solution}
 \label{sec:exact-solution}
 
-Numerics at finite coupling strengths suggest, that
+Numerics (see \cref{fig:unshifted_overview}) at finite coupling
+strengths suggest that the behavior for the weak coupling limit may
+not be naively reproduced in this setting.
+
+\begin{figure}[htp]
+  \centering
+  \includegraphics[width=.8\linewidth]{plots/overview_unshifted.tikz}
+  \caption{\label{fig:unshifted_overview} A numerical simulation for
+    \(g_{0}=10^{-2}\). The mean displacement takes on some
+    non-universal value and \(ρ_{A}\not{\to} 0\).}
+\end{figure}
+
+In the following we will suppress the \(k\) dependence of the
+couplings \(η_{j}\).  Perturbation theory suggests that the energy of
+the \(\ket{A}\) state changes according to a lamb shift
+\begin{equation}
+  \label{eq:1}
+  ω_{A} \to ε_{A}^{(2)} = ω_{A} - ∑_{j} \frac{\abs{η_{j}}^{2}}{(ω_{j}-ω_{A})},
+\end{equation}
+which would make the system insensitive to the spectral density at
+\(ω = 0\) unless corrected for.
+
+Let us proceed by writing down the equations of motion for the
+coefficients of a general state \(\ket{ψ} = α\ket{A} +
+∑_{j}β_{j}\ket{j}\) following from \cref{eq:37}
+\begin{equation}
+  \label{eq:2}
+  \begin{aligned}
+    \iu \dot{α} &= ω_{A}α + ∑_{j} η_{j} β_{j} & \iu \dot{β}_{j} = η_{j}^\ast α
+                                       + ω_{i} β_{i}.
+  \end{aligned}
+\end{equation}
+Transforming the \(β_{j}\) into a rotating frame with respect to the
+\(ω_{i\neq A}\) so that \(\tilde{β}_{i}=β_{i} \eu^{\iu ω_{i}t}\) we obtain
+\begin{equation}
+  \label{eq:3}
+  \begin{aligned}
+    \iu \dot{α} &= ω_{A}α + ∑_{j} η_{j} \tilde{β}_{j}\eu^{-\iu ω_{j}t}
+    & \iu \dot{\tilde{β}}_{j} = η_{j}^\ast α \eu^{\iu ω_{j} t}.
+  \end{aligned}
+\end{equation}
+
+The equations for the \(\tilde{β}_{j}\) can be integrated straight forwardly
+to obtain \(\tilde{\beta}_{j} = -\iu η_{j}^{\ast} ∫_{0}^{t}\eu^{\iu ω_{i} τ}
+  α(τ) \dd{τ}\) which can be substituted into \cref{eq:3} to find a
+  closed equation for \(α\)
+\begin{equation}
+  \label{eq:4}
+  \dot{α} = -\iu ω_{A}α - ∫_{0}^{t} Κ(t-τ)α(τ) \dd{τ}
+\end{equation}
+with \(Κ(t-τ) = ∑_{j} \abs{η_{j}}^{2} \eu^{-\iu ω_{i}
+  (t-τ)}\). Laplace transforming both sides of \cref{eq:4} leads us to
+\begin{equation}
+  \label{eq:5}
+  \begin{aligned}
+  \tilde{α}(s) &= \frac{α(0)}{s+\iu ω_{A} + \tilde{Κ}(s)} &
+     \tilde{Κ}(s) &= ∑_{j}\frac{\abs{η_{j}}^{2}}{s + \iu ω_{j}},
+  \end{aligned}
+\end{equation}
+which is very similar to \cref{eq:45}, save for the explicit
+appearance of \(\iu ω_A\). As \cref{eq:45} is related to a probability, it
+is real-valued and always has a pole at \(s=0\) independent of
+\(ω_{A}\).
+
+The amplitude \(α\) on the other hand can generically be expected to
+have the form \(α(t)=∑_{i}α_{i}\eu^{-\iu ε_{i} t}\), where the
+\(ε_{i}\) are poles of \(\tilde{α}(s)\) and
+\begin{equation}
+  \label{eq:6}
+  α_{i} = \iu \lim_{ε\to ε_{i}} (ε-ε_{i}) \tilde{α}(-\iu ε) =
+  \eval{\bqty{\dv{s} \frac{1}{\tilde{α}(-\iu s)}}^{-1}}_{s=ε_{i}} =
+  \frac{α(0)}{1 + \tilde{Κ}'(-\iu ε_{i})} = \frac{α(0)}{1+U_{i}}
+\end{equation}
+are the residues (modulo \(2π\iu\)) of \(\tilde{α}(s)\).
+
+We are however interested in the behaviour of \(ρ_{A}(t) =
+\abs{α(t)}^{2} = ∑_{jk}α_{j}α_{k}^\ast \eu^{-\iu (ε_{j} - ε_{k})t}\)
+which has the long time average \(ρ_{A} = ∑_{j}
+\abs{α_{j}}^{2}\). Therefore we cannot simply calculate the residue at
+\(s=0\) as in \cref{sec:born-approximation}, but have to
+calculate all \(α_{j}\) in principle.
+
+Again, perturbation theory suggests, that there will be one eigenstate
+with great overlap with the \(\ket{A}\) state, close in energy to
+\(ω_{A}\). Let us designate the corresponding residual as \(α_{A}\)
+and notice that \(\abs{α_{A}}\) forms a lower bound of
+\(ρ_{A}(t)\). We can therefore expect that for relatively weak
+coupling (which we will make more concrete later), the \(α_{A}\) can
+be viewed as a good approximation for \(ρ_{A}\) and as an indicator
+for \(ρ_{A}(t) \not\to 0\) in general.
+
+Finding the pole of \(\tilde{α}(s)\), or equivalently the root of
+\({s+\iu ω_{A} + \tilde{Κ}(s)}\) close to \(-\iu ω_{A}\) involves
+finding the root of a polynomial of potentially high degree and can in
+general only be achieved through numerics or perturbation
+theory. Further, \cref{fig:unshifted_overview} suggests that we won't
+obtain a results similar to the one found in
+\cref{sec:born-approximation}.
+
+The solution is to demand the existence of a pole at \(s=0\)
+corresponding to \(ε_{A}=0\) and adjusting \(ω_{A}\) accordingly
+\begin{equation}
+  \label{eq:7}
+  0 = \iu ω_{A} + \tilde{Κ}(0) \implies ω_{A} = ∑_{j}\frac{\abs{η_{j}}^{2}}{ε_{j}}
+\end{equation}
+which is only consistent with the expression obtained using
+second-order perturbation theory\footnote{and therefore the Born
+  approximation in the current context} \cref{eq:7} only for
+\(∑_{j}{\abs{η_{j}}^{2}}/{ω_{j}^{2}}\ll 1\) and \(\abs{ω_{A}} \ll ω_{j}\).
+
+Using \cref{eq:6,eq:7} and we can conclude that
+\begin{equation}
+  \label{eq:8}
+  U_{A} = ∑_{j}\frac{\abs{η_{j}}^{2}}{ω_{j}^{2}} \implies ρ_{A}≥ \abs{α_{A}}^{2}
+  = \frac{α(0)}{(1+U_{A})^{2}},
+\end{equation}
+which is compatible with \cref{eq:47} for \(U_{A}\ll 1\) as already
+stated in the previous paragraph.
+
+It is to be stressed, that \cref{eq:8} is an exact result and exhibits
+the same behavior as the result from \cref{sec:born-approximation}, as
+the values for \(U_{A}\) obtained are identical. On the other hand, we
+are interested in the case where \(U_{A}\to ∞\) where the
+compatibility with the Born approximation should be broken. One could
+however imagine, that there is the possibility of \(U_{A}\gg 1\) while
+\(ω_{A}\ll ω_{c} \implies ε_{A}^{(2)}\approx ε_{A} \approx 0\) so that
+the two methods converge again at sufficiently low coupling strength
+and large bath size.
+
+% This can, in fact, be achieved. Consider the first bath level to have
+% energy \(ω_{1} = ε\). According to \cref{sec:discretization-bath}, we
+% can assign it a coupling
+% \(η_{j}^{2} = ∫_{0}^{ε}J(ω)\dd{ω} \approx J(ε/2)ε\). Considering only
+% this first bath mode, as it is going to have the greatest influence in
+% the sums above for \(ε\ll ω_{c}\) (\(N\to ∞\)) and
+% \(g_{0}\ll ω_{c}^{2}\), we can approximate
+% \begin{equation}
+%   \label{eq:9}
+%   \begin{aligned}
+%   \frac{ω_{A}}{ω_{c}} &\sim \frac{g_{0}^{2}(α+1)}{ω_{c}^{α+2} 2^{α}} ε^{α} & U_{A}
+%     &\sim  \frac{g_{0}^{2}(α+1)}{ω_{c}^{α+1} 2^{α}} ε^{α-1}.
+%   \end{aligned}
+% \end{equation}
+% When \(α<1\), we have \({ω_{A}}/{ω_{c}}\to 0\) while \(U_{A}\to ∞\)
+% for \(ε\to 0\)
+% fulfilling \cref{eq:1} as well as \cref{eq:7}.
+
+However, in the continuum limit
+\begin{equation}
+  \label{eq:10}
+  ω_{A} = ∫_{0}^{ω_{c}}\frac{J(ω)}{ω} = J_{α}\frac{ω_{c}^{α}}{α}.
+\end{equation}
+Using this in \cref{eq:46} and taking the limit \(g_{0}\to 0\) leads
+to \(ρ_{A}\to 1\), whereas \cref{eq:8} would suggest \(ρ_{A}\to
+0\). Therefore the weak coupling limit has to be taken at the same
+time as the continuum limit to achieve consistency. \emph{I have to
+  think more about that.}
 
 
 
 \newpage
 
-\subsection{Discretization of the Bath}
+\subsection{Strong Coupling Limit}
+\label{sec:strong-coupl-limit}
+
+
+\section{Discretization of the Bath}
 \label{sec:discretization-bath}
 TBD
 

@@ -1,0 +1,191 @@
+#+PROPERTY: header-args :session debug_analytics :kernel julia-1.8 :pandoc yes :async yes
+#+begin_src jupyter-julia
+  using DrWatson
+  using Revise
+  using Plots
+  using LinearAlgebra
+  using Accessors
+  using Statistics
+  using SpecialFunctions
+  @quickactivate "discrete_walk"
+
+  Revise.includet(srcdir("WalkModel.jl"))
+  using .WalkModel
+  Revise.includet(srcdir("Utilities.jl"))
+  using .Utilities
+  using Measures
+#+end_src
+
+#+RESULTS:
+
+
+#+begin_src jupyter-julia
+  (full_prototype, prototype, spectral_density) = let
+      v = 1
+      u = 0
+      J = .0001
+      α = 0.5
+      ω_c = 1
+      N = 100
+      p = ExtendedModelParameters(v, u, 0, OhmicSpectralDensity(ω_c, J, α), N, LinearBathDiscretization, true, true, 0)
+
+      p, ModelParameters(p), OhmicSpectralDensity(p)
+  end
+  prototype
+#+end_src
+
+#+RESULTS:
+: ModelParameters
+:   v: Int64 1
+:   u: Int64 0
+:   ω: Int64 0
+:   ε: Array{Float64}((100,)) [0.005, 0.015, 0.025, 0.035, 0.045, 0.055, 0.065, 0.075, 0.085, 0.095  …  0.905, 0.915, 0.925, 0.935, 0.945, 0.955, 0.965, 0.975, 0.985, 0.995]
+:   g: Array{Float64}((100,)) [0.00031622776601683794, 0.0004276011137434268, 0.0004865927761445336, 0.0005295136992839154, 0.0005639450228079818, 0.0005930091541620682, 0.0006183300672580195, 0.0006408711118873581, 0.0006612550946518655, 0.0006799100382906404  …  0.00119455870696915, 0.0011978450233698784, 0.0012011045118058845, 0.001204337677809873, 0.001207545012104386, 0.0012107269911870605, 0.001213884077887258, 0.0012170167218950173, 0.0012201253602646942, 0.0012232104178940893]
+:   sw_approximation: Bool true
+:   ω_A: Int64 0
+:
+
+When we shift the \(A\) site be the correct amount at non-vanishing
+coupling strengths and look at the minima of \(ρ_A\) we get
+#+begin_src jupyter-julia
+  let
+      αs = LinRange(.1, 2, 50)
+      N = 200
+      ρs = map(αs) do α
+          params = @set full_prototype.spectral_density.α = α
+          @reset params.spectral_density.J = .1
+          @reset params.N = N
+
+          e, g = discretize_bath(params)
+          bound = sum(abs2.(g) ./ e .^2)
+          @reset params.ω_A = sum(abs2.(g) ./ e)
+
+          sol = WalkSolution(0, params |> ModelParameters)
+          ρ_A = map(t->a_weight(t, sol) * 2π, LinRange(.5*recurrence_time(params), .9*recurrence_time(params), 100))
+          [minimum(ρ_A), 1/(1+bound)^2, sol.vectors[1,1] |> abs2, mean(ρ_A[end-Integer(100 * .6):end]), (sol.vectors[1, 1] |> abs2) / (sol.vectors[1, 2:end] .|> abs2 |> sum), ρ_A_mean(sol)]
+      end
+      ρs = reduce(hcat, ρs)'
+
+      p1 = plot(αs, ρs[:, 1], xlabel="α", label=raw"$2π\;\min ρ_A$", title="N=$(N)")
+      plot!(αs, ρs[:, 4], label=raw"$\langle ρ_A\rangle$ (finite window)")
+      plot!(αs, ρs[:, 2], label=raw"$|{α_A}|^2$ (theory)", linewidth=3)
+      plot!(αs, ρs[:, 3] * 2π, label=raw"$|{α_A}|^2$ (numerical)", color="black")
+      plot!(αs, ρs[:, 6] * 2π, label=raw"$\langle ρ_A\rangle$")
+      p2 = plot(αs, ρs[:, 5] * 2π, label=raw"$|{α_A}|^2 / ∑_j |α_j|^2$ (numerical)", yscale=:log10, xlabel="α")
+      hline!([10], label="10")
+      plot(p1, p2, size=(1500, 500))
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/b3f481b092ae31a1bd3b78e7d16b4e87b429c9be.svg]]
+
+We see that \(\abs{α_A}^2\) is indeed a lower bound for \(\ev{ρ_A}\),
+but that the minima in \(ρ_A\) tell a clearer story. The bound seems
+pretty tight even at these coupling strengths. Also, the value for
+\(\abs{α_A}^2\) is /exact/ for every coupling strength.
+
+
+For this coupling strength  \(\abs{α_A}^2\) is not dominant at low
+\(α\).
+
+
+I wonder if we can get good estimates for the  \(\abs{α_j}^2\) as well.
+#+begin_src jupyter-julia
+  let
+      N = 1000
+      params = @set full_prototype.spectral_density.α = .1
+      @reset params.spectral_density.J = 1e-2
+      @reset params.N = 200
+
+      e, g = discretize_bath(params)
+      @reset params.ω_A = sum(abs2.(g) ./ e)
+
+      sol = WalkSolution(0, params |> ModelParameters)
+      @show sol.energies[1]
+      #plot(sol.vectors[1,2:end] .|> abs2)
+
+      usum(j, exponent) = sum(abs2.(g[1:end .!=j]) ./ (((e[1:end .!=j] .- e[j]) .^ exponent)))
+      A(j) = usum(j, 1)
+      B(j) = usum(j, 2)
+      AA(j) = A(j) + e[j] - params.ω_A
+      Δω(j) = -1 / (B(j) + 1) * (AA(j) / 2 - sqrt(AA(j) ^ 2 / 4 + (B(j) + 1) * abs2(g[j])))
+      real_Δω = Vector(sol.energies[2:end] .- e)
+      #@show e, Δω.(1:length(e)), sol.energies[2:end] .- e
+      #e[1] + real_Δω[1] - params.ω_A + sum(abs2.(g[1:end .!=1]) ./ (e[1:end .!=1] .- (e[1]))) + sum(abs2.(g[1:end .!=1]) ./ ((e[1:end .!=1] .- (e[1]))) .^ 2) * real_Δω[1] -  (abs2(g[1]) / real_Δω[1])
+      scatter(Δω.(1:length(e)), xlabel="j", label="approximate", ylabel="Δω")
+      scatter!(real_Δω, label="numerical")
+      α2(j) = 1 / (1 + sum(abs2.(g) ./ (((e .- (e[j] + Δω(j))) .^ 2))))^2
+      plot((sol.vectors[1,2:end] .|> abs2) * 2π, xlabel="j", ylabel=raw"$|α_j|^2$", label="Exact")
+      plot!(α2.(1:length(e)), label="Estimate")
+  end
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+: sol.energies[1] = -5.877171918323193e-17
+[[file:./.ob-jupyter/f006b70b2832d2f1fc21c4726db9a3792569381f.svg]]
+:END:
+
+Indeed we can reasonably well, if the coupling is weak enough. The
+first mode needs some more love, esecially in the subohmic case.
+
+
+#+begin_src jupyter-julia
+  let
+
+      function U_A(params)
+          # ee, gg = discretize_bath(params)
+          # return sum(abs2.(gg) ./ ee .^2)
+          ω_c = params.spectral_density.ω_c
+          α = params.spectral_density.α
+          J = params.spectral_density.J
+          N = params.N
+          e = collect(1:N) * ω_c / N
+          g = J * (α+1)/ω_c^(α) .* e .^ (α) / N
+          # g ./=sum(g)
+          # g .*= J
+
+
+          #@show norm(ee-e), norm(gg.^2-g)
+          sum(abs.(g) ./ (e .^2))
+      end
+
+      function U_A_theo(params)
+          α = params.spectral_density.α
+          N = params.N
+          params.spectral_density.J/params.spectral_density.ω_c^2 * (α + 1) * (N^(1-α) * zeta(2-α) + 1/(α-1))
+      end
+
+      function scale(s, params)
+          ω_c = params.spectral_density.ω_c
+          α = params.spectral_density.α
+          J = params.spectral_density.J
+          N = params.N
+          (((1/sqrt(s)-1) * ω_c^2/(J*(α+1))+1/(1-α))/zeta(2-α))^(1/(1-α))
+      end
+
+      function α2_A(params)
+          1/(1+U_A(params))^2
+      end
+
+      params = @set full_prototype.spectral_density.J = .01
+      @reset params.discretization = ExponentialBathDiscretization
+      parameters = @parametrize_properties params N spectral_density.α
+      p = plot(xlabel="α", ylabel=raw"$|α_A|^2$")
+      s = .01
+      α_c = .5
+      N = trunc(Int, scale(s, parameters(1, α_c)))
+      αs = LinRange(0, 2, 10)
+      plot!(αs, α2_A.(parameters.(N, αs)), label="N=$(N)")
+      # plot!(αs, U_A.(parameters.(N, αs)), label="N=$(N)")
+      #plot!(αs, U_A_theo.(parameters.(N, αs)), label="N=$(N)")
+      hline!([s])
+      vline!([α_c])
+      p
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/fb1407a05f0f763771a4904f68850a12b6131655.svg]]
+Apparrently the scaling is better with the integral discretization.
