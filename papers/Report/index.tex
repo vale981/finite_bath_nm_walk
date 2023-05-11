@@ -429,8 +429,52 @@ transferring all weight into it.
 
 \section{A Criterion for the Bath Size}
 \label{sec:criterion-bath-size}
+Looking back at \cref{eq:8}, we would like to find an estimate for the
+number of bath modes needed in the limit of number of bath states
+\(N\) being moderately large.
 
+In this limit, employing a constant density of states, we have \(η_{j}^{2} = J_{α} ω_{j}^{α}\) and \(ω_{j}=jω_{c}/N\) and can readily
+calculate
+\begin{equation}
+  \label{eq:17}
+  U_{A} = ∑_{j}\frac{η_{j}^{2}}{ω_{j}^{2}} = J_{α}
+  \frac{ω_{C}}{N}∑_{j}{ω_{j}^{α-2}}= g_{0}^{2} \frac{α+1}{ω_{c}^{2}}
+  N^{1-α} ∑_{j} j^{α-2}.
+\end{equation}
+For \(1/N\) sufficiently smaller than \(1\) we can approximate the sum
+in
+\cref{eq:17} as
+\begin{equation}
+  \label{eq:18}
+  N^{1-α} ∑_{j} j^{α-2} \approx \frac{g_{0}^{2} (α+1)}{ω_{c}^{2}} \pqty{N^{1-α}ζ(2-α) + \frac{1}{α-1}}.
+\end{equation}
+Demanding that \(ρ_{A}\approx \abs{α_{A}}^{2}\) takes on a particular
+value for a given \(α\) yields
+\begin{equation}
+  \label{eq:19}
+  N = \bqty{\pqty{\frac{ω_{c}^{2}}{g_{0}^{2}}\frac{\pqty{\abs{α_{A}}^{-1}-1}}{(α+1)}+\frac{1}{1-α}}\frac{1}{ζ(2-α)}}^{\frac{1}{1-α}}.
+\end{equation}
 
+The expression \cref{eq:19} in monotonous in \(\abs{α_{A}}\) and thus
+choosing an \(N\) such that \(\eval{ρ_{A}}_{α=α_{0}}\) implies that
+\(\eval{ρ_{A}}_{{α}<α_{0}} \leq \eval{ρ_{A}}_{α=α_{0}}\).
+
+Furthermore, at \(α\approx 1\) we can estimate
+\(ζ(2-α)\approx 1/(1-α)\) and thus
+\begin{equation}
+  \label{eq:20}
+  N \approx \pqty{ \frac{ω_{c}^{2}}{g_{0}^{2}}\pqty{\abs{α_{A}}^{-1}-1}\cdot
+      \frac{1-α}{1+α}+1}^{\frac{1}{1-α}} \xrightarrow{α\to 1} \eu^{\frac{ω_{c}^{2}}{2g_{0}^{2}}\pqty{\abs{α_{A}}^{-1}-1}}
+\end{equation}
+showing that for the sharp phase diagram presented in
+\refcite{Ricottone2020} exponentially many modes are required for a
+fixed coupling strength.
+
+As for \(N\gg 1\) all discretization methods become equivalent, this
+result is useful to estimate when \(N\) becomes prohibitively
+large. In the case where \(N\sim 100\) or smaller using a different
+density of states and the discretization methods described in
+\cref{sec:discretization-bath} may pay off.
 
 \newpage
 
