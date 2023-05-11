@@ -331,7 +331,6 @@ behavior for the unshifted bath.
   let
       params = @set full_prototype.N = 100
       p = plot_overview(params, 100)
-      savefig(plotsdir("overview_unshifted.tikz"))
       p
   end
 #+end_src

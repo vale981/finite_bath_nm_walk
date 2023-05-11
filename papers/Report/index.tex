@@ -5,7 +5,7 @@ headinclude=true,footinclude=false,BCOR=0mm]{scrartcl}
 \pdfvariable suppressoptionalinfo 512\relax
 \synctex=1
 
-
+\author{Valentin Boettcher}
 \usepackage{hirostyle}
 \usepackage{hiromacros}
 \addbibresource{references.bib}
@@ -342,11 +342,98 @@ time as the continuum limit to achieve consistency. \emph{I have to
   think more about that.} This is sensible, as the transition
 \(U_{A}\to ∞\) may well be non-analytic in \(g_{0}\).
 
+\subsection{Strong Coupling Limit}
+\label{sec:strong-coupl-limit}
+
+In the strong coupling limit
+\begin{equation}
+  \label{eq:14}
+  ∑_{j}\abs{η_{j}}^{2} \gg ω_{c}^{2}
+\end{equation}
+we can find an effective two-level system behavior in the model
+\cref{eq:37}.
+
+Starting from the eigenvalue equations
+\begin{align}
+  \label{eq:11}
+    ω_{A} α + ∑_{j} η_{j} β_{j} &= E α \\
+    ω_{j} β_{j} + η_{j} α &= E β_{j} \label{eq:12}
+\end{align}
+and substituting \cref{eq:12} into \cref{eq:11} to obtain
+\begin{equation}
+  \label{eq:12}
+  E = ω_{A} + Σ(E) = ω_{A} + ∑_{j}\frac{\abs{η_{j}}^{2}}{E-ω_{j}}
+\end{equation}
+which should be familiar from \cref{eq:5}. We can now expect some
+energy eigenvalues \(E\) close to the bath energies \(ω_{j}\), but
+level repulsion will produce states with a large overlap with
+\(\ket{A}\) that have energies outside of this ``continuum'' as is
+demonstrated in \cref{fig:spectrum_strong_coupling_limit}.
+\begin{figure}[htp]
+  \centering
+  \includegraphics[width=.49\linewidth]{plots/spectrum_weak_couplign_limit.tikz}
+  \includegraphics[width=.49\linewidth]{plots/spectrum_stong_couplign_limit.tikz}
+  \caption{\label{fig:spectrum_strong_coupling_limit} The spectrum of
+    the model in \cref{fig:unshifted_overview} for two different
+    coupling strengths. The bars show the overlap
+    \(\abs{\braket{A}{E}}^{2}\) of the eigenstate \(\ket{E}\) at
+    energy \(E\) with the \(\ket{A}\) state.}
+\end{figure}
+
+Assuming \(\abs{E}\gg ω_{c} \implies \abs{E} \gg ω_{j}\) we can
+neglect the \(ω_{j}\) in \cref{eq:12} to obtain
+\begin{equation}
+  \label{eq:13}
+  E_{\pm} = \frac{1}{2}\bqty{ω_{A}\pm \sqrt{ω_{A}^{2} + 4 ∑_{k}\abs{η_{j}}^{2}}}.
+\end{equation}
+For \(ω_{A} = 0\) this becomes \(E_{\pm}=\pm\sqrt{∑_{j}\abs{η_{j}}^{2}}\) which
+leads to the criterion \cref{eq:14}.
+
+The corresponding eigenvectors are (modulo normalization)
+\begin{equation}
+  \label{eq:15}
+  \ket{\pm} = \frac{1}{\sqrt{1 + ∑_{j}
+      \abs{\frac{η_{j}}{E_{\pm}-ω_{j}}}^{2}}}\bqty{\ket{A} +
+    ∑_{j} \frac{η_{j}^\ast}{E_{\pm}-ω_{j}}\ket{j}}\approx \frac{1}{\sqrt{2}}\bqty{\ket{A} +
+    ∑_{j} \frac{η_{j}^\ast}{E_{\pm}}\ket{j}}
+\end{equation}
+where the second approximate equality follows from
+\(\abs{E}\gg \abs{ω_{A}}\). Together they form a complete orthonormal
+basis of the subspace of the Eigenspace of the Hamiltonian that
+contains \(\ket{A}\) of the equal overlap with \(\ket{A}\).
+
+A state \(\ket{ψ(t)}\) with
+\(\ket{ψ(0)}=\ket{A} = (\ket{+} + \ket{-})/\sqrt{2}\) will oscillate
+between \((\ket{+} \pm \ket{-})/\sqrt{2}\) with angular frequency
+\(2\abs{E_{\pm}}\) and thus
+\(ρ_{A}(k,t)=\cos[2](E_{+}t)=\cos[2](E_{-}t) \implies ρ_{A}(k) =
+1/2\). The \ac{mlong} will then exhibit a universal behavior
+irrespective of the spectral density
+\begin{equation}
+  \label{eq:16}
+  \ev{m} =
+  \begin{cases}
+    1 & \mathrm{if}\, u>1,\\
+    0 & \mathrm{if}\, u<1.
+  \end{cases}
+\end{equation}
+
+This behavior can be exploited to store quantum information
+\textbf{Reference?} by allowing for an oscillation to transfer all of
+the state weight into the bath decoupling from the \(\ket{A}\)
+state. The free evolution of the \(\ket{j}\) states is then reversed
+at some point and the bath is re-coupled to the \(\ket{A}\) state,
+transferring all weight into it.
+
+
+
+\section{A Criterion for the Bath Size}
+\label{sec:criterion-bath-size}
+
+
 
 \newpage
 
-\subsection{Strong Coupling Limit}
-\label{sec:strong-coupl-limit}
 
 
 \section{Discretization of the Bath}

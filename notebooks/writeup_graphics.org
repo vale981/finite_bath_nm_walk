@@ -11,7 +11,8 @@
   using Accessors
   using Statistics
   using LaTeXStrings
-
+  using Plots.Measures
+  using PGFPlotsX
   Revise.includet(srcdir("WalkModel.jl"))
   using .WalkModel
   Revise.includet(srcdir("Utilities.jl"))
@@ -19,12 +20,6 @@
 #+end_src
 
 #+RESULTS:
-: [32m[1m  Activating[22m[39m project at `~/Documents/org/roam/data/c4/5097d2-2599-426d-82db-6ecfb5207151`
-: [36m[1m[ [22m[39m[36m[1mInfo: [22m[39mPrecompiling Plots [91a5bcdd-55d7-5caf-9e0b-520d859cae80]
-: [33m[1m┌ [22m[39m[33m[1mWarning: [22m[39mbackend `GR` is not installed.
-: [33m[1m└ [22m[39m[90m@ Plots ~/.julia/packages/Plots/modjX/src/backends.jl:43[39m
-: [36m[1m[ [22m[39m[36m[1mInfo: [22m[39mGR
-: [36m[1m[ [22m[39m[36m[1mInfo: [22m[39mPrecompiling PGFPlotsX [8314cec4-20b6-5062-9cdb-752b83310925]
 
 
 #+begin_src jupyter-julia
@@ -94,4 +89,4 @@ weak and strong coupling.
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/fad83eaa9ca2496bb5a29659326ce8fd47c6863f.svg]]
+[[file:./.ob-jupyter/0b875609efd0b12ed46a9b09e8e30daefad3bed3.svg]]
