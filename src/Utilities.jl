@@ -204,7 +204,7 @@ function plot_A_overlap(params::ModelParameters, k::Real=0)
     ψ_A = [1; zeros(num_bath_modes(params))]
     energies = eigvals(H)
     overlaps = (ψ_A' * eigvecs(H) .|> abs2)'
-    bar(energies, overlaps, ylabel="Overlap with A", xlabel=raw"$E$")
+    bar(energies, overlaps, ylabel="Overlap with A", xlabel=L"$E$", label=false)
 end
 
 plot_A_overlap(params::ExtendedModelParameters, rest...) = plot_A_overlap(params |> ModelParameters, rest...)

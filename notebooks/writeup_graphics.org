@@ -1,0 +1,97 @@
+#+PROPERTY: header-args :session writeup_figures :kernel julia-1.8 :pandoc yes :async yes
+
+#+begin_src jupyter-julia
+  using DrWatson
+  using Revise
+  @quickactivate "discrete_walk"
+
+  using Plots
+  pgfplotsx()
+  using LinearAlgebra
+  using Accessors
+  using Statistics
+  using LaTeXStrings
+
+  Revise.includet(srcdir("WalkModel.jl"))
+  using .WalkModel
+  Revise.includet(srcdir("Utilities.jl"))
+  using .Utilities
+#+end_src
+
+#+RESULTS:
+: [32m[1m  Activating[22m[39m project at `~/Documents/org/roam/data/c4/5097d2-2599-426d-82db-6ecfb5207151`
+: [36m[1m[ [22m[39m[36m[1mInfo: [22m[39mPrecompiling Plots [91a5bcdd-55d7-5caf-9e0b-520d859cae80]
+: [33m[1m┌ [22m[39m[33m[1mWarning: [22m[39mbackend `GR` is not installed.
+: [33m[1m└ [22m[39m[90m@ Plots ~/.julia/packages/Plots/modjX/src/backends.jl:43[39m
+: [36m[1m[ [22m[39m[36m[1mInfo: [22m[39mGR
+: [36m[1m[ [22m[39m[36m[1mInfo: [22m[39mPrecompiling PGFPlotsX [8314cec4-20b6-5062-9cdb-752b83310925]
+
+
+#+begin_src jupyter-julia
+  (full_prototype, prototype, spectral_density) = let
+      v = 1
+      u = 2
+      J = .01
+      α = 0.5
+      ω_c = 1
+      N = 100
+      p = ExtendedModelParameters(v, u, 0, OhmicSpectralDensity(ω_c, J, α), N, LinearBathDiscretization, true, true, 0.)
+
+      p, ModelParameters(p), OhmicSpectralDensity(p)
+  end
+  prototype
+#+end_src
+
+#+RESULTS:
+: ModelParameters
+:   v: Int64 1
+:   u: Int64 2
+:   ω: Int64 0
+:   ε: Array{Float64}((100,)) [0.005, 0.015, 0.025, 0.035, 0.045, 0.055, 0.065, 0.075, 0.085, 0.095  …  0.905, 0.915, 0.925, 0.935, 0.945, 0.955, 0.965, 0.975, 0.985, 0.995]
+:   g: Array{Float64}((100,)) [0.00316227766016838, 0.004276011137434268, 0.004865927761445336, 0.005295136992839155, 0.005639450228079817, 0.005930091541620684, 0.006183300672580194, 0.0064087111188735795, 0.0066125509465186595, 0.006799100382906402  …  0.011945587069691553, 0.011978450233698779, 0.012011045118058816, 0.012043376778098804, 0.01207545012104379, 0.012107269911870704, 0.012138840778872466, 0.012170167218950265, 0.0122012536026469, 0.012232104178940925]
+:   sw_approximation: Bool true
+:   ω_A: Float64 0.0
+:
+
+* Exact Solution
+#+begin_src jupyter-julia
+  let
+      params = @set full_prototype.N = 100
+      p = plot_overview(params, 100)
+      savefig(plotsdir("overview_unshifted.tikz"))
+      p
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/0d31200b7de31404ec433f76f593949d065ece0d.svg]]
+
+* Strong Coupling Limit
+Here we plot the spectrum and overlap with the \(\ket{A}\) site for
+weak and strong coupling.
+
+#+begin_src jupyter-julia
+  let
+      p = plot_A_overlap(prototype)
+      plot!(title=L"$J=%$(full_prototype.spectral_density.J)$")
+      savefig(plotsdir("spectrum_weak_couplign_limit.tikz"))
+      p
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/a614fa6b5890dfd4cf5699f68490825762cbeb69.svg]]
+
+
+#+begin_src jupyter-julia
+  let
+      params = @set full_prototype.spectral_density.J = 200
+      p = plot_A_overlap(params)
+      plot!(title=L"$J=%$(params.spectral_density.J)$")
+      savefig(plotsdir("spectrum_stong_couplign_limit.tikz"))
+      p
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/fad83eaa9ca2496bb5a29659326ce8fd47c6863f.svg]]
