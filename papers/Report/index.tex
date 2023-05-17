@@ -26,6 +26,63 @@ headinclude=true,footinclude=false,BCOR=0mm]{scrartcl}
 \maketitle
 \tableofcontents
 
+
+\section{Introduction}
+\label{sec:introduction}
+The aim of this document is to try to reproduce the results of
+\cite{Ricottone2020} for a finite sized bath with non-vanishing
+coupling strength. As the phase transition observed in
+\refcite{Ricottone2020} is non-analytic, we expect some finite-size
+effects that wash out the transition. Nevertheless, a qualitatively
+similar behavior should be observable.
+
+In \cref{sec:model} the basic model is briefly introduced and
+\cref{sec:mean-displacement-1} discusses the observable of interest to
+us. In summary, the observable of interest is the (long-time-averaged)
+mean displacement \(\ev{m}\) of a particle on an SSH lattice with
+extra energy levels (henceforth called the bath) attached to each unit
+cell. Depending on the nature of the couplings to these extra levels
+one finds~\cite{Ricottone2020} that this observable takes on universal
+values depending on the toplogical phase of the SSH
+chain\footnote{More precisely reference SSH chain without detuning of
+  the site energies and without the extra bath levels.}. This leads to
+a two dimensional phase diagram, where one dimension is the model
+parameter of the SSH chain and the other axis is related to the bath
+structure.
+
+\Cref{sec:born-approximation} revisits the results of
+\refcite{Ricottone2020} by briefly describing the solution of the
+model using a perturbative approach, but without taking the continuum
+limit. The detailed analysis of the resulting expression is postponed
+to a later point (\cref{sec:criterion-bath-size}).
+
+As the numerics indicated, that the approximation assumed in
+\cref{sec:born-approximation} is too restrictive in a setting with
+finitely many bath states and finite coupling strength, an exact
+solution is used to indicate a method to counter the effects of the
+finite coupling strength in \cref{sec:exact-solution}. While
+relatively weak coupling is still required, the vanishing coupling
+that the born approximation would require is not necessary in this
+case.
+
+\Cref{sec:strong-coupl-limit} discusses the limit of ultra-strong
+coupling, where \(\ev{m}\) takes on a different universal value than
+in the weak coupling case, irrespective of the bath structure.
+
+In \cref{sec:criterion-bath-size} we present an analytic criterion for
+the size of the bath that would be required to see the universal
+behavior of \(\ev{m}\) for a specific bath
+structure. \Cref{sec:mean-displacement} highlights how the results of
+the previous sections may be used to construct the phase diagram for a
+finite sized system.
+
+Examples of the resulting phase diagrams resulting from exact
+numerical calculations are presented in \cref{sec:phase-diagram}.
+
+
+\subsection{Model}
+\label{sec:model}
+
 We will discuss how the behavior of the model introduced in
 \refcite{Ricottone2020} for the limit of weak coupling and an infinite
 bath may be reproduced with both finite coupling strength and a finite
@@ -61,10 +118,20 @@ Schrieffer-Wolff transformation for \(ω\gg v(k)\), we end up with
   H(k) = \tilde{ω}_{A} \ketbra{A,k} + ∑_{j} \bqty{\tilde{ω}_{j} \ketbra{j, k}
     + \pqty{\tilde{η}_{j}\ketbra{A,k}{j,k} + \hc}},
 \end{equation}
-where the \(\tilde{η}_{j}(k) \sim \tilde{η}_{j}(0) v(k)\). The tildas
-signify quantities renormalized due to the Schrieffer-Wolff transform
-and will be dropped in the following.
+where the
+\(\tilde{η}_{j}(k) \sim \tilde{η}_{j}(0) \frac{v(k)}{v(0)}\). The
+tildas signify quantities renormalized due to the Schrieffer-Wolff
+transform and will be dropped in the following.
 
+
+One final technicality is, that \(u\) influences the overall coupling
+strength and therefore the behaviour of the model. Therefore we
+normalize \(v(k)\) so that \(v (1+u) = v + v\prime\) remains constant
+with respect to \(u\) which is in accordance with
+\refcite{Rudner2009}.
+
+\subsection{Mean Displacement}
+\label{sec:mean-displacement-1}
 
 The \emph{mean displacement} is defined as
 \begin{equation}
@@ -94,7 +161,7 @@ with
     ∞}\frac{1}{T} ∫_{0}^{T}\abs{\braket{A,k}{ψ(t)}}^{2}\dd{t}.
 \end{equation}
 
-\section{Born Approximation}
+\section{Results using the Born Approximation}
 \label{sec:born-approximation}
 
 In the limit of very weak coupling we can solve for \(ρ_{A}\) in terms
@@ -156,7 +223,7 @@ spectral density. We make the model assumption
 of an ohmic-type spectral density
 \begin{equation}
   \label{eq:49}
-  J(ω) =g_{0}^{2}\frac{α+1}{ω_{c}^{α+1}}
+  J(ω) = \frac{\abs{v(k)}^{2}}{\abs{v(0)}^{2}} g_{0}^{2}\frac{α+1}{ω_{c}^{α+1}}
   \begin{dcases}
     ω^{α} & \mathrm{if}\, ω \leq ω_{c},\\
     0 & \mathrm{otherwise}.
@@ -392,7 +459,7 @@ very crude estimate based on this idea gives
 \cref{eq:21} suggests a dependence on \(N\) which is not yet captured.
 
 
-\subsection{Strong Coupling Limit}
+\subsection{Ultra-Strong Coupling Limit}
 \label{sec:strong-coupl-limit}
 
 In the strong coupling limit
@@ -484,11 +551,12 @@ transferring all weight into it.
 
 
 
-\section{A Criterion for the Bath Size}
+\subsection{A Criterion for the Bath Size}
 \label{sec:criterion-bath-size}
 Looking back at \cref{eq:8}, we would like to find an estimate for the
 number of bath modes needed in the limit of number of bath states
-\(N\) being moderately large.
+\(N\) being moderately large. In this section we suppress the \(k\)
+dependence of \(J(ω)\) assuming \(k=0\).
 
 In this limit, employing a constant density of states, we have
 \(η_{j}^{2} = J_{α} ω_{j}^{α} ω_{c}/N\) and \(ω_{j}=jω_{c}/N\) and can readily
@@ -499,6 +567,8 @@ calculate
   \frac{ω_{C}}{N}∑_{j}{ω_{j}^{α-2}}= g_{0}^{2} \frac{α+1}{ω_{c}^{2}}
   N^{1-α} ∑_{j} j^{α-2}.
 \end{equation}
+
+
 For \(1/N\) sufficiently smaller than \(1\) we can approximate the sum
 in
 \cref{eq:17} as
@@ -506,8 +576,14 @@ in
   \label{eq:18}
   N^{1-α} ∑_{j} j^{α-2} \approx \frac{g_{0}^{2} (α+1)}{ω_{c}^{2}} \pqty{N^{1-α}ζ(2-α) + \frac{1}{α-1}}.
 \end{equation}
-Demanding that \(ρ_{A}\approx \abs{α_{A}}^{2}\) takes on a particular
-value for a given \(α\) yields
+Let us first consider the case \(α>1\). Then
+\(N^{1-α}∑_{j}j^{α-2} \xrightarrow{N\to ∞} (α-1)^{-1}\) which is
+finite. In this case \(\ev{m}\) will take on some non-universal
+value. For \(α\leq 1\) the first term in \cref{eq:18} will grow
+without bounds for \(N\to ∞\) leading to \(ρ_{A}\to 0\).
+
+For \(N<∞\), demanding that \(ρ_{A}\approx \abs{α_{A}}^{2}\) takes on
+a particular value for a given \(α\) yields
 \begin{equation}
   \label{eq:19}
   N = \bqty{\pqty{\frac{ω_{c}^{2}}{g_{0}^{2}}\frac{\pqty{\abs{α_{A}}^{-1}-1}}{(α+1)}+\frac{1}{1-α}}\frac{1}{ζ(2-α)}}^{\frac{1}{1-α}}.
@@ -536,7 +612,8 @@ Furthermore, at \(α\approx 1\) we can estimate
 \end{equation}
 showing that for the sharp phase diagram presented in
 \refcite{Ricottone2020} exponentially many modes are required for a
-fixed coupling strength.
+fixed coupling strength. This is the origin of the finite size effects
+on the \(α\) axis.
 
 As for \(N\gg 1\) all discretization methods become equivalent, this
 result is useful to estimate when \(N\) becomes prohibitively
@@ -544,7 +621,9 @@ large. In the case where \(N\sim 100\) or smaller using a different
 density of states and the discretization methods described in
 \cref{sec:discretization-bath} may pay off.
 
-\section{Mean Displacement}
+
+
+\subsection{Mean Displacement}
 \label{sec:mean-displacement}
 
 The results of \cref{sec:exact-solution,sec:criterion-bath-size} give
@@ -592,12 +671,25 @@ levels. \Cref{fig:overview_shifted} highlights such a case.
     \(ω_{A}\). }
 \end{figure}
 
+The \(k\) dependence of the spectral density
+\(J(ω) \sim {\abs{v(k)}^{2}}/{\abs{v(0)}} \) forces us to
+choose a special \(k=0\) to calculate \(ω_{A}\). Here, we will choose
+\(k=0\), as this makes \(ω_{A}\) independent of \(u\).
+
 Further, as \(\abs{v(0)}\geq \abs{v(k\neq 0)}\) we will always choose
 \(ω_{A}\) too big for all \(k\neq 0\). This generically leads to
 \(ρ_{A}(k)\to 0\) decaying as \(U_{A}\) generically diverges
 regardless of \(α\). However, this is not too problematic, as this
 means that those \(ρ_{A}(k)\) simply don't contribute in the integral
-\cref{eq:46}. Also \(\eval{∂_{k}\abs{v(k)}^{2}}_{k=0}\) so we have a
+\cref{eq:46}. On the other hand \(\abs{v(0)}\geq \abs{v(k\neq 0)}\)
+can also lead to the effect, that the decay of \(ρ_{A}\) is slower for
+\(k\neq 0\) than for \(k=0\). For \(u\approx 1\) there even are values of
+\(k\) where \(v(k)\approx 0\) so that no decay takes place before
+recurrence which will show up as a finite size effect and can be
+witnessed in \cref{fig:transition_u_graphs.tikz}. However for \(u\)
+sufficiently far from \(1\) this effect becomes minor.
+
+Also \(\eval{∂_{k}\abs{v(k)}^{2}}_{k=0}=0\) so we have a
 non-vanishing region where \(ω_{A}\) is chosen appropriately.
 
 Solving the full model with the \(B\) site preserved may alleviate
@@ -624,14 +716,7 @@ might be useful as an estimator. Numerically one can of course use the
 results of the last section to reconstruct the full solution and get a
 more accurate estimate.
 
-One technicality is, that \(u\) influences the overall coupling
-strength and therefore the behaviour of the model. An alternative
-would be to modulate \(u\) and \(v\) at the same time so that
-\(v (1+u) = v + v\prime\) remains constant.  This has the added bonus,
-that \(ω_{A}\) remains independent of \(u\) so that we are really only
-tweaking a \emph{single parameter}.
-
-\section{Phase Diagram}
+\subsection{Phase Diagram}
 \label{sec:phase-diagram}
 
 With the results of \cref{sec:mean-displacement} we are finally in a
@@ -676,6 +761,7 @@ It shall be noted that further optimizations are certainly
 possible. For example, using an exponential density of states could
 help for smaller \(N\).
 
+\appendix
 \section{Discretization of the Bath}
 \label{sec:discretization-bath}
 Given a subdivision of the energy axis \(\pqty{x_{i}}_{i\in [0,N]}\) with
