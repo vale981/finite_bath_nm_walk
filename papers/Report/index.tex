@@ -1,4 +1,4 @@
-\documentclass[fontsize=10pt,paper=a4,open=any,
+\documentclass[fontsize=10pt,paper=b5,open=any,
 twoside=no,toc=listof,toc=bibliography,headings=optiontohead,
 captions=nooneline,captions=tableabove,english,DIV=15,numbers=noenddot,final,parskip=half-,
 headinclude=true,footinclude=false,BCOR=0mm]{scrartcl}
@@ -58,7 +58,7 @@ Upon eliminating the \(B\) site from the above through a
 Schrieffer-Wolff transformation for \(ω\gg v(k)\), we end up with
 \begin{equation}
   \label{eq:37}
-  H(k) = \tilde{ω}_{A} \ketbra{j,k} + ∑_{j} \bqty{\tilde{ω}_{j} \ketbra{j, k}
+  H(k) = \tilde{ω}_{A} \ketbra{A,k} + ∑_{j} \bqty{\tilde{ω}_{j} \ketbra{j, k}
     + \pqty{\tilde{η}_{j}\ketbra{A,k}{j,k} + \hc}},
 \end{equation}
 where the \(\tilde{η}_{j}(k) \sim \tilde{η}_{j}(0) v(k)\). The tildas
@@ -149,7 +149,7 @@ limit \(N\to ∞\)
 \begin{equation}
   \label{eq:48}
   ∫_{0}^{∞}f(ω)∑_{j}\abs{η_{j}}^{2} δ(ω-ω_{j})^{2}\dd{ω} =
-  ∫_{0}^{∞}J(ω) f(ω)
+  ∫_{0}^{∞}J(ω) f(ω)\dd{ω}
 \end{equation}
 for arbitrary (smooth) functions \(f\), where \(J\) is called the
 spectral density. We make the model assumption
@@ -191,7 +191,7 @@ not be naively reproduced in this setting.
   \centering
   \includegraphics[width=.8\linewidth]{plots/overview_unshifted.tikz}
   \caption{\label{fig:unshifted_overview} A numerical simulation for
-    \(g_{0}=10^{-2}\). The mean displacement takes on some
+    \(g_{0}=10^{-1}\). The mean displacement takes on some
     non-universal value and \(ρ_{A}\not{\to} 0\).}
 \end{figure}
 
@@ -297,7 +297,7 @@ Using \cref{eq:6,eq:7} and we can conclude that
 \begin{equation}
   \label{eq:8}
   U_{A} = ∑_{j}\frac{\abs{η_{j}}^{2}}{ω_{j}^{2}} \implies ρ_{A}≥ \abs{α_{A}}^{2}
-  = \frac{α(0)}{(1+U_{A})^{2}},
+  = \frac{\abs{α(0)}^{2}}{(1+U_{A})^{2}},
 \end{equation}
 which is compatible with \cref{eq:47} for \(U_{A}\ll 1\) as already
 stated in the previous paragraph.
@@ -342,6 +342,56 @@ time as the continuum limit to achieve consistency. \emph{I have to
   think more about that.} This is sensible, as the transition
 \(U_{A}\to ∞\) may well be non-analytic in \(g_{0}\).
 
+\subsection{Estimating all Energy Eigenvalues}
+\label{sec:estimating-u_j}
+
+Although we don't know the poles of \cref{eq:5} exactly, we can we can
+use the fact that the energies of \(\ket{j}\) states won't affected as
+much as the energy of the \(\ket{A}\) state for moderate coupling
+strengths.
+
+Let us assume that \cref{eq:5} has a pole at \(-\iu (ω_{j}+δω_{j})\) with
+\(δω_{j}\ll ω_{j}\) so that
+\begin{equation}
+  \label{eq:21}
+  0 \overset{!}{=} ω_{j} + δω_{j} + ω_{A} -
+  ∑_{l}\frac{\abs{η_{l}}^{2}}{ω_{l}-ω_{j}-δω_{j}} \approx ∑_{l\neq
+    j}\frac{\abs{η_{l}}^{2}}{ω_{l}-ω_{j}} + δω_{j} ∑_{l\neq
+    j}\frac{\abs{η_{l}}^{2}}{\pqty{ω_{l}-ω_{j}}^{2}} - \frac{\abs{η_{j}}^{2}}{δω_{j}},
+\end{equation}
+which can be solved for \(δω_{j}\)
+\begin{equation}
+  \label{eq:22}
+  δω_{j} = \frac{\sign{A_{j}}}{2(1+B_{j})} \bqty{\abs{A_{j}} -\sqrt{{A_{j}^{2}} +
+      4(B_{j}+1)\abs{η_{j}}^{2}}}
+\end{equation}
+with
+\begin{equation}
+  \label{eq:23}
+  \begin{aligned}
+    A_{j} &= ∑_{l\neq
+    j}\frac{\abs{η_{l}}^{2}}{ω_{l}-ω_{j}} + ω_{j}-ω_{A} & B_{j} &=∑_{l\neq
+    j}\frac{\abs{η_{l}}^{2}}{\pqty{ω_{l}-ω_{j}}^{2}}.
+  \end{aligned}
+\end{equation}
+
+For weak coupling we can set \(A=ω_{j}-ω_{A}\) and \(B=0\) so that
+\cref{eq:22} becomes
+\begin{equation}
+  \label{eq:25}
+  δω_{j}\approx \sign({ω_{A}-ω_{j}}) \pqty{\frac{ω_{A}-ω_{j}}{2} -
+  \sqrt{\frac{\pqty{ω_{j}-ω_{A}}^{2}}{4} + \abs{η_{j}}^{2}}} \approx
+  \frac{\abs{η_{j}}^{2}}{ω_{j} - ω_{A}}
+\end{equation}
+which matches second order perturbation theory.
+
+This result can be used to estimate the \(U_{j}\) and therefore the
+\(α_{j}\). Demanding \(\abs{α_{j}} \ll \abs{α_{A}}\) and performing a
+very crude estimate based on this idea gives
+\(g_{0}^{2}\ll ω_{c}^{2} (α+1)\) which is reasonable. However
+\cref{eq:21} suggests a dependence on \(N\) which is not yet captured.
+
+
 \subsection{Strong Coupling Limit}
 \label{sec:strong-coupl-limit}
 
@@ -371,8 +421,14 @@ level repulsion will produce states with a large overlap with
 demonstrated in \cref{fig:spectrum_strong_coupling_limit}.
 \begin{figure}[htp]
   \centering
-  \includegraphics[width=.49\linewidth]{plots/spectrum_weak_couplign_limit.tikz}
-  \includegraphics[width=.49\linewidth]{plots/spectrum_stong_couplign_limit.tikz}
+  \begin{subfigure}[b]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{plots/spectrum_weak_couplign_limit.tikz}
+  \end{subfigure}
+  \begin{subfigure}[b]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{plots/spectrum_stong_couplign_limit.tikz}
+  \end{subfigure}
   \caption{\label{fig:spectrum_strong_coupling_limit} The spectrum of
     the model in \cref{fig:unshifted_overview} for two different
     coupling strengths. The bars show the overlap
@@ -413,7 +469,7 @@ irrespective of the spectral density
   \label{eq:16}
   \ev{m} =
   \begin{cases}
-    1 & \mathrm{if}\, u>1,\\
+    \frac{1}{2} & \mathrm{if}\, u>1,\\
     0 & \mathrm{if}\, u<1.
   \end{cases}
 \end{equation}
@@ -427,13 +483,15 @@ transferring all weight into it.
 
 
 
+
 \section{A Criterion for the Bath Size}
 \label{sec:criterion-bath-size}
 Looking back at \cref{eq:8}, we would like to find an estimate for the
 number of bath modes needed in the limit of number of bath states
 \(N\) being moderately large.
 
-In this limit, employing a constant density of states, we have \(η_{j}^{2} = J_{α} ω_{j}^{α}\) and \(ω_{j}=jω_{c}/N\) and can readily
+In this limit, employing a constant density of states, we have
+\(η_{j}^{2} = J_{α} ω_{j}^{α} ω_{c}/N\) and \(ω_{j}=jω_{c}/N\) and can readily
 calculate
 \begin{equation}
   \label{eq:17}
@@ -454,6 +512,16 @@ value for a given \(α\) yields
   \label{eq:19}
   N = \bqty{\pqty{\frac{ω_{c}^{2}}{g_{0}^{2}}\frac{\pqty{\abs{α_{A}}^{-1}-1}}{(α+1)}+\frac{1}{1-α}}\frac{1}{ζ(2-α)}}^{\frac{1}{1-α}}.
 \end{equation}
+
+\begin{figure}[tp]
+  \centering
+  \includegraphics[width=.8\linewidth]{plots/N_formula_surface.tikz}
+  \caption{\label{fig:N_formula_surface} \Cref{eq:19} evaluated for
+    \(g_{0}^{2}=0.05\) and \(ω_{c}=1\).  For \(α\lesssim 4\) we can
+    expect relatively good results for \(\ev{m}\) for
+    \(\mathcal{O}(100)\) bath levels.}
+\end{figure}
+
 
 The expression \cref{eq:19} in monotonous in \(\abs{α_{A}}\) and thus
 choosing an \(N\) such that \(\eval{ρ_{A}}_{α=α_{0}}\) implies that
@@ -476,21 +544,236 @@ large. In the case where \(N\sim 100\) or smaller using a different
 density of states and the discretization methods described in
 \cref{sec:discretization-bath} may pay off.
 
-\newpage
+\section{Mean Displacement}
+\label{sec:mean-displacement}
+
+The results of \cref{sec:exact-solution,sec:criterion-bath-size} give
+us the tools to construct finite-size systems to observe the effect of
+a non-Markovian bath on the \ac{mlong}.
+
+In general, the estimate \cref{eq:23} although being a lower bound for
+the long time average of \(ρ_{A}\), can be beat by the instantaneous
+value \(ρ_{A}(t)\) it reaches its minimum just before the revival time
+due to the finite system size. This can happen, when optimizing for
+the smallest number of bath levels \(N\) at a given coupling
+strength. Thus it would be of advantage experimentally, to average
+\(ρ_{A}\) over a time interval that excludes the revival and maybe
+even the initial decay phase. In such cases \cref{eq:23} will
+overestimate the number of required bath
+levels. \Cref{fig:overview_shifted} highlights such a case.
+\begin{figure}[ht]
+  \centering
+  \begin{subfigure}[t]{0.45\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{plots/overview_shifted.tikz}
+    \caption{\label{fig:overview_shifted_many} With \(N=100\)
+      bath levels. The mean displacement approaches the universal
+      value for finite times and the infinite time limit is not
+      too far off.}
+  \end{subfigure}
+  \begin{subfigure}[t]{0.45\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{plots/overview_shifted_few.tikz}
+    \caption{\label{fig:overview_shifted_few} The same as
+      \cref{fig:overview_shifted} but with \(N=8\) bath
+      levels. Revivals shift the \ac{mlong} \(\ev{m}\) down.}
+  \end{subfigure}
+  \begin{subfigure}[t]{\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{plots/overview_shifted_few_windowed.tikz}
+    \caption{\label{fig:overview_shifted_few_windowed} The same as
+      \cref{fig:overview_shifted_few} but shown is the windowed time
+      average value for \ac{mlong} and \(ρ_{A}\).  We see that this is
+      a better extrapolation to the \(N\to ∞\) case. Further, the
+      revivals are incomplete and interfere for different \(k\) values}
+  \end{subfigure}
+  \caption{\label{fig:overview_shifted} The same as
+    \cref{fig:unshifted_overview} but with a shifted
+    \(ω_{A}\). }
+\end{figure}
+
+Further, as \(\abs{v(0)}\geq \abs{v(k\neq 0)}\) we will always choose
+\(ω_{A}\) too big for all \(k\neq 0\). This generically leads to
+\(ρ_{A}(k)\to 0\) decaying as \(U_{A}\) generically diverges
+regardless of \(α\). However, this is not too problematic, as this
+means that those \(ρ_{A}(k)\) simply don't contribute in the integral
+\cref{eq:46}. Also \(\eval{∂_{k}\abs{v(k)}^{2}}_{k=0}\) so we have a
+non-vanishing region where \(ω_{A}\) is chosen appropriately.
+
+Solving the full model with the \(B\) site preserved may alleviate
+those ambiguities further and allow for the calculation of a berry
+phase. The reduced model without the \(B\) site yields a purely real
+Hamiltonian, as all phases can be absorbed into the basis
+states. Therefore no nontrivial berry phase can arise.
 
 
+The decay rate of \(ρ_{A}(k, t)\) can be estimated through the golden
+(for a linear density of states) rule by setting local density of
+states to \(ω_{c}/N\) and setting the squared matrix element to
+\(J(ω_{A}) ω_{c}/N\)
+\begin{equation}
+  \label{eq:24}
+  Γ=2π\frac{N}{ω_{c}} J(ω_{A}) \frac{ω_{c}}{N} = 2π J(ω_{A}) =
+  2π \frac{g_{0}^{2}}{ω_{c}} \pqty{\frac{ω_{A}}{ω_{c}}}^{α}.
+\end{equation}
+Thus, averaging \(ρ_{A}\) over a time span between \(\approx 1/(2Γ)\)
+and the recurrence time \(\approx 2π N / ω_{c}\) will make the phase
+diagram sharper as is demonstrated in . Note that \(g_{0}^{2}\sim \abs{v(k)}^{2}\) so that
+\(Γ\) may not be expected to give a very rigorous timescale but still
+might be useful as an estimator. Numerically one can of course use the
+results of the last section to reconstruct the full solution and get a
+more accurate estimate.
+
+One technicality is, that \(u\) influences the overall coupling
+strength and therefore the behaviour of the model. An alternative
+would be to modulate \(u\) and \(v\) at the same time so that
+\(v (1+u) = v + v\prime\) remains constant.  This has the added bonus,
+that \(ω_{A}\) remains independent of \(u\) so that we are really only
+tweaking a \emph{single parameter}.
+
+\section{Phase Diagram}
+\label{sec:phase-diagram}
+
+With the results of \cref{sec:mean-displacement} we are finally in a
+position to approximate the sharp phase diagram of
+\cite{Ricottone2020} with finite coupling strength and a finite bath.
+
+\Cref{fig:transition_u_graphs.tikz} shows the \(u\) dependence of the
+\ac{mlong} for two values of \(α\) and a difference in behavior is
+clearly visible. The full phase diagram can be seen in
+\Cref{fig:fullphase}.
+\begin{figure}[htp]
+  \centering
+  \includegraphics[width=.8\linewidth]{plots/transition_u_graphs_wider.tikz}
+  \caption{\label{fig:transition_u_graphs.tikz} The \ac{mlong}
+    averaged over an interval \([0.5τ, 0.95τ]\) where \(τ\) is the
+    recurrence time. The coupling strength was \(g_{0}^{2}=.01\) and
+    \(N=100\) bath levels were used. This is on the same order of
+    magnitude of what \cref{eq:19} would suggest, but windowing
+    improves the result.}
+\end{figure}
+\begin{figure}[htp]
+  \centering
+  \begin{subfigure}[t]{.49\linewidth}
+    \includegraphics[width=\linewidth]{plots/phase_diag_100.tikz}
+    \caption{With windowing.}
+  \end{subfigure}
+  \begin{subfigure}[t]{.49\linewidth}
+    \includegraphics[width=\linewidth]{plots/phase_diag_100_nowindow.tikz}
+    \caption{Without windowing. The phase diagram is slightly less
+      crisp, but still acceptable.}
+  \end{subfigure}
+  \begin{subfigure}[t]{.5\linewidth}
+    \includegraphics[width=\linewidth]{plots/phase_diag_100_nowindow_noshift.tikz}
+    \caption{Without Lamb-Shift compensation. No universal values of
+      \(\ev{m}\) are being reached.}
+  \end{subfigure}
+  \caption{\label{fig:fullphase}Full phase diagrams with the same
+    parameters as \cref{fig:transition_u_graphs.tikz}.}
+\end{figure}
+
+It shall be noted that further optimizations are certainly
+possible. For example, using an exponential density of states could
+help for smaller \(N\).
 
 \section{Discretization of the Bath}
 \label{sec:discretization-bath}
-TBD
+Given a subdivision of the energy axis \(\pqty{x_{i}}_{i\in [0,N]}\) with
+\(x_{0}=0\) we would like to find coupling strengths \(η_{j}\) and energies
+\(ω_{j}\) so
+that
+\begin{equation}
+  \label{eq:26}
+  ∫_{0}^{∞}f(ω)∑_{j}\abs{η_{j}}^{2} δ(ω-ω_{j})^{2}\dd{ω} =
+  ∫_{0}^{∞}J(ω) f(ω) \dd{ω}
+\end{equation}
+for any smooth \(f(ω)\) in the limit \(N\to ∞\).
+Discretizing \(f\) to be a linear combination of
+\(f_{i}(ω)=Θ(x_{i}-ω) + Θ(ω-x_{i-1})\) (step function) we find
+\begin{equation}
+  \label{eq:27}
+  η_{i}^{2} = ∫_{x_{i-1}}^{x_{i}}J(ω)\dd{ω} \approx J(ω) (x_{i}-x_{i-1}),
+\end{equation}
+where the second expression holds when \(x_{i}-x_{i-1}\ll ω_{c}\).
 
-\section{Ideas for Future Work}
-\label{sec:ideas-future-work}
+The choice of \(ω_{i}\) within \([x_{i-1}, x_{i}]\) is relatively
+arbitrary, but one should avoid \(ω_{0}=0\) as this implies finite
+coupling to a zero energy bath level. One method is to view \(J(ω)\) itself
+as a distribution and choose~\cite{Bulla2003}
+\begin{equation}
+  \label{eq:28}
+  ω_{i} =
+  \frac{∫_{x_{i-1}}^{x_{i}}J(ω)ω\dd{ω}}{∫_{x_{i-1}}^{x_{i}}J(ω)\dd{ω}}
+  = η_{i}^{-2} ∫_{x_{i-1}}^{x_{i}}J(ω) ω\dd{ω}.
+\end{equation}
 
-\begin{itemize}
-\item Using the Floquet picture to justify the RWA more
-  rigorously. (Magnus Expansion etc.)
-\end{itemize}
+Another approach is the postulate a density of frequencies \(ρ_{f}\)
+with \(\int_{0}^{∞}ρ_{f}(ω) \dd{ω} = 1\)
+and choose the discretization of the frequency axis accordingly
+\begin{equation}
+  \label{eq:29}
+  ∫_{0}^{x_{i}} ρ_{f}(ω) \dd{ω} = \frac{i}{N}
+\end{equation}
+where \(N\) is the number of bath levels. Then one can choose the
+\(ω_{i}\) according to this distribution
+\begin{equation}
+  \label{eq:30}
+  ω_{i} =
+  \frac{∫_{x_{i-1}}^{x_{i}}ρ_{f}(ω)ω\dd{ω}}{∫_{x_{i-1}}^{x_{i}}ρ_{f}(ω)\dd{ω}}
+\end{equation}
+or to the median with respect to this distribution~\cite{Hartmann2019}
+\begin{equation}
+  \label{eq:31}
+  ∫_{0}^{ω_{i}} ρ_{f}(ω) \dd{ω} = \frac{i-1}{N} + \frac{1}{2N} = \frac{2i-1}{2N}.
+\end{equation}
+
+An advantage of the latter choice is, that it prevents \(ω_{0}=0\) and
+is easier to compute than \cref{eq:30}, as \cref{eq:29} can be reused.
+
+
+The choice of \(ρ_{f}=1/ω_{c}\) yields together with \cref{eq:49}
+\begin{equation}
+  \label{eq:33}
+  \begin{aligned}
+    x_{i} &= ω_{c}\frac{i}{N} & ω_{i} &= ω_{c} \frac{2i-1}{2N} & η_{i}^{2}
+    &= ∫_{ω_{c}\frac{i-1}{N}}^{ω_{c}\frac{i}{N}}J(ω)\dd{ω} = \frac{g_{0}^{2}}{N^{α+1}} \pqty{i^{α+1}-(i-1)^{α+1}}.
+  \end{aligned}
+\end{equation}
+
+The values \cref{eq:33} are used for the exact diagonalization in the
+preceding sections.  For analytic calculations it is easiest to choose
+\(ω_{i} = x_{i}\) along with replacing the integral \cref{eq:27} with
+\(η_{j}^{2} = {g_{0}^{2}(α+1)} j^{α}/N^{α+1}\) and \(ω_{j}=jω_{c}/N\)
+which is the limit of \cref{eq:33} for \(N\gtrsim 100\).
+
+Another choice of for the energy level distribution is \(ρ_{f} =
+Δ^{-1} \eu^{-\frac{ω}{Δ}}\) which emphasizes the structure of the bath
+at \(ω\approx 0\). The parameter \(Δ\) is arbitrary, but when using an
+exponential cutoff for the spectral density
+\begin{equation}
+  \label{eq:50}
+  J(ω) = \tilde{J}_{α} ω^{α} \eu^{-\frac{ω}{ω_{c}}}= \frac{g_{0}^{2}}{ω_{c}^{1+α}Γ(1+α)} ω^{α} \eu^{-\frac{ω}{ω_{c}}},
+\end{equation}
+it is natural to set \(Δ=ω_{c}\).
+With this we obtain
+\begin{equation}
+  \label{eq:51}
+  \begin{aligned}
+    x_{i} &= -ω_{c} \ln(1-\frac{i}{N}) & ω_{i} &= -ω_{c} \ln(1-\frac{2i-1}{2N}).
+  \end{aligned}
+\end{equation}
+The coupling constants \(η_{i}\) can be determined by evaluating the
+antiderivative of \cref{eq:50}
+\begin{equation}
+  \label{eq:52}
+  \mathcal{J}(ω) = -ω^{α+1}
+  \frac{E_{-a}\pqty{\frac{ω}{ω_{c}}}}{ω_{c}^{α+1} Γ(α+1)},
+\end{equation}
+where \(E_{n}(z)=∫_{1}^{∞}\eu^{-zt}/t^{n}\dd{t}\) is the exponential
+integral.
+
+
+
 
 \printbibliography{}
 \printacronyms{}

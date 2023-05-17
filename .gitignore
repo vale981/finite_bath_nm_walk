@@ -5,10 +5,11 @@
 # Folders to ignore - files may be too large, too many, etc. NOTE: EDIT IF NEEDED.
 /data
 /videos
-/plots
 /_research
 .ob-jupyter
 .ob-jupyter/*.svg
+.direnv
+index-figure*.pdf
 
 ################################################################################
 #                                    Julia                                     #
@@ -416,3 +417,4 @@ $RECYCLE.BIN/
 ## Acknowledgements
 # Many thanks to `https://gitignore.io/`, written and maintained by Joe Blau, which contributed much material to this gitignore file.
 /notebooks/ltximg/
+

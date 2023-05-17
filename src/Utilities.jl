@@ -5,6 +5,7 @@ export plot_analytic_phase_diagram
 export plot_phase_diagram
 export plot_analytic_phase_diagram_born_v_exact
 export plot_overview
+export plot_overview_windowed
 export plot_ρ_A
 export scan_setproperties
 export plot_A_overlap
@@ -106,10 +107,24 @@ function plot_overview(p::ExtendedModelParameters, T::Real, k::Real=0)
 
     plot(t -> mean_displacement(t, params), 0.1, T, label=L"$\langle m(t)\rangle$", xlabel=L"$t$", title=L"$u=%$(p.u)$, $\alpha=%$(p.spectral_density.α)$, $N=%$(p.N)$")
     plot!(t -> analytic_time_averaged_displacement(t, params), label=L"$\langle m\rangle$ running")
-    hline!(t -> analytic_time_averaged_displacement(params), label=L"$\langle m\rangle$")
+    hline!([analytic_time_averaged_displacement(params)], label=L"$\langle m\rangle$")
 
     plot!(t -> a_weight(t, sol) * 2π, label=L"$\rho_A(k=%$(k))$")
 end
+
+function plot_overview_windowed(p::ExtendedModelParameters, T::Real, k::Real=0)
+    params = ModelParameters(p)
+    sol = WalkSolution(k, params)
+
+    τ = 2.5 / (decay_rate(p, π))
+    plot(t -> mean_displacement(t, params), 0.1, T, label=L"$\langle m(t)\rangle$", xlabel=L"$t$", title=L"$u=%$(p.u)$, $\alpha=%$(p.spectral_density.α)$, $N=%$(p.N)$")
+    hline!([analytic_time_averaged_displacement(params)], label=L"$\langle m\rangle$", linestyle=:dash)
+    hline!([analytic_time_averaged_displacement(τ, 0.9 * recurrence_time(p), params)], label=L"$\langle m\rangle$ (windowed)")
+
+    plot!(t -> a_weight(t, sol) * 2π, label=L"$\rho_A(k=%$(k))$")
+    plot!(t -> ρ_A_mean(τ, t, sol) * 2π, label=L"$\rho_A(k=%$(k))$ windowed average")
+end
+
 
 function plot_ρ_A(p::ExtendedModelParameters, T::Real, k::Real=0)
     params = ModelParameters(p)
@@ -161,38 +176,56 @@ macro parametrize_properties(strct::Any, args...)
     end
 
     Expr(:function, function_args, quote
-            local $(tmp) = $(esc(strct))
-            $(assignments...)
+        local $(tmp) = $(esc(strct))
+        $(assignments...)
 
-            $(tmp)
-        end)
+        $(tmp)
+    end)
 end
 
 
-function plot_phase_diagram(params::ExtendedModelParameters, grid_N::Integer=50; α_limits::Tuple{Real,Real}=(0, 2), u_limits::Tuple{Real,Real}=(0, 2), shift_k::Real=0)
+function plot_phase_diagram(params::ExtendedModelParameters, grid_N::Integer=50;
+    α_limits::Tuple{Real,Real}=(0, 2), u_limits::Tuple{Real,Real}=(0, 2), shift_A::Bool=true, shift_k::Real=0,
+    window::Bool=true, window_k::Real=π)
     displacement = Array{Float64}(undef, grid_N, grid_N)
 
     αs = collect(LinRange(α_limits..., grid_N))
     us = collect(LinRange(u_limits..., grid_N))
 
+    dα = αs[2] - αs[1]
+    du = us[2] - us[1]
+
     Threads.@threads for i in 1:grid_N
         for j in 1:grid_N
-            α = αs[j]
-            u = us[i]
-
+            α = αs[j] + dα/2
+            u = us[i] + du/2
 
 
             current_params = @set params.spectral_density.α = α
             @reset current_params.u = u
 
-            current_params = auto_shift_bath(current_params, shift_k)
-            displacement[i, j] = mean_displacement(recurrence_time(current_params) * 0.95, current_params |> ModelParameters)
+            if shift_A
+                current_params = auto_shift_bath(current_params, shift_k)
+            end
+
+            τ_end = recurrence_time(current_params) * 0.95
+            if window
+                # τ = 1 / (decay_rate(current_params, window_k))
+                # if τ > τ_end
+                #     @show τ_end, α, u, decay_rate(current_params, window_k),  current_params.ω_A
+                #     error("Decay doesn't take place before recurrence.")
+                # end
+                displacement[i, j] = analytic_time_averaged_displacement(.5 * τ_end, τ_end, current_params |> ModelParameters)
+            else
+                #displacement[i, j] = mean_displacement(recurrence_time(current_params) * 0.95, current_params |> ModelParameters)
+                displacement[i, j] = analytic_time_averaged_displacement(current_params |> ModelParameters)
+            end
         end
     end
 
     @show maximum(displacement)
 
-    p = heatmap(αs, us, displacement, xlabel=raw"$α$", ylabel=raw"$u$", title=raw"$\langle m\rangle$")
+    p = heatmap(αs, us, displacement, xlabel=L"$\alpha$", ylabel=L"$u$", title=L"$\langle m\rangle$")
     vline!([1], label=false, color=:white)
     hline!([1], label=false, color=:white)
 
