@@ -6,13 +6,14 @@
   @quickactivate "discrete_walk"
 
   using Plots
+  using PGFPlotsX
   pgfplotsx()
+
   using LinearAlgebra
   using Accessors
   using Statistics
   using LaTeXStrings
   using Plots.Measures
-  using PGFPlotsX
   Revise.includet(srcdir("WalkModel.jl"))
   using .WalkModel
   Revise.includet(srcdir("Utilities.jl"))
@@ -20,6 +21,7 @@
 #+end_src
 
 #+RESULTS:
+: [32m[1m  Activating[22m[39m project at `~/Documents/org/roam/data/c4/5097d2-2599-426d-82db-6ecfb5207151`
 
 
 #+begin_src jupyter-julia
@@ -34,32 +36,28 @@
 
       p, ModelParameters(p), OhmicSpectralDensity(p)
   end
-  prototype
+  full_prototype.spectral_density
 #+end_src
 
 #+RESULTS:
-: ModelParameters
-:   v: Int64 1
-:   u: Int64 2
-:   ω: Int64 0
-:   ε: Array{Float64}((100,)) [0.005, 0.015, 0.025, 0.035, 0.045, 0.055, 0.065, 0.075, 0.085, 0.095  …  0.905, 0.915, 0.925, 0.935, 0.945, 0.955, 0.965, 0.975, 0.985, 0.995]
-:   g: Array{Float64}((100,)) [0.00316227766016838, 0.004276011137434268, 0.004865927761445336, 0.005295136992839155, 0.005639450228079817, 0.005930091541620684, 0.006183300672580194, 0.0064087111188735795, 0.0066125509465186595, 0.006799100382906402  …  0.011945587069691553, 0.011978450233698779, 0.012011045118058816, 0.012043376778098804, 0.01207545012104379, 0.012107269911870704, 0.012138840778872466, 0.012170167218950265, 0.0122012536026469, 0.012232104178940925]
-:   sw_approximation: Bool true
-:   ω_A: Float64 0.0
-:
+: OhmicSpectralDensity(1, 0.01, 0.5)
 
 * Exact Solution
 #+begin_src jupyter-julia
   let
       params = @set full_prototype.N = 100
-      p = plot_overview(params, 100)
+      @reset params.spectral_density.J = .1
+      @reset params.spectral_density.α = .2
+
+      @reset params.u = 2
+      p = plot_overview(params, 600)
       savefig(plotsdir("overview_unshifted.tikz"))
       p
   end
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/0d31200b7de31404ec433f76f593949d065ece0d.svg]]
+[[file:./.ob-jupyter/62ab9d604f7ee690b03e1d63b5ce3ef3f291dff7.svg]]
 
 * Strong Coupling Limit
 Here we plot the spectrum and overlap with the \(\ket{A}\) site for
@@ -75,7 +73,7 @@ weak and strong coupling.
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/a614fa6b5890dfd4cf5699f68490825762cbeb69.svg]]
+[[file:./.ob-jupyter/30cc2d6a363cd9103cab6cfbaab0f907978254c2.svg]]
 
 
 #+begin_src jupyter-julia
@@ -89,4 +87,275 @@ weak and strong coupling.
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/0b875609efd0b12ed46a9b09e8e30daefad3bed3.svg]]
+[[file:./.ob-jupyter/5873719a38c3a85dbcafa26b682da6b2d0a895f0.svg]]
+
+#+begin_src jupyter-julia
+  let
+      params = auto_shift_bath(full_prototype, 0)
+      p = plot_A_overlap(params)
+      plot!(title=L"$J=%$(full_prototype.spectral_density.J)$")
+      savefig(plotsdir("spectrum_weak_shifted.tikz"))
+      p
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/cadee98f5aa2948d9c51cf28c180cb28b5b6f4f6.svg]]
+
+* Bound Surface
+#+begin_src jupyter-julia
+  let
+      pgfplotsx()
+      αs = LinRange(0.001, .9, 10)
+      ρs = LinRange(.001, 1, 100)
+      p = plot(ρs, αs, (ρ, α) -> minimal_N(ρ, α, .05, 1) |> log10, st=:surface, camera=(20, 20), xlabel=L"$\rho_A$ target", ylabel=L"$\alpha$", zlabel=L"\log_{10} N", label=:false)
+      #plot!(size=(800, 500))
+      savefig(plotsdir("N_formula_surface.tikz"))
+      p
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/9d71d85768cf2961937f3e20716eabf501d4751f.svg]]
+
+* Shift vs No-Shift
+#+begin_src jupyter-julia
+  let
+      params = @set full_prototype.N = 100
+      @reset params.spectral_density.J = .1
+      @reset params.spectral_density.α = .2
+
+      @reset params.u = 2
+
+      e, g = discretize_bath(params)
+      params = auto_shift_bath(params, 0)
+      p = plot_overview(params, 600)
+      savefig(plotsdir("overview_shifted.tikz"))
+      p
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/dbc7d2418ef3a421a5ddbe7b739278f2f9a53144.svg]]
+
+
+#+begin_src jupyter-julia
+  let
+      params = @set full_prototype.N = 8
+      @reset params.spectral_density.J = .1
+      @reset params.spectral_density.α = 0.2
+      #@reset params.discretization = ExponentialBathDiscretization
+
+      @reset params.u = 2
+      params = auto_shift_bath(params, 0)
+
+      e, g = discretize_bath(params)
+
+      p = plot_overview(params, 2π * 10)
+      savefig(plotsdir("overview_shifted_few.tikz"))
+      # plot!(t->exp(-2π * (params.spectral_density.α + 1) * abs2(v(0, params|>ModelParameters)) * params.spectral_density(params.ω_A) * t))
+      p
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/f49ef50f71abfd84b2692de4e94b6a1879cc9fc1.svg]]
+
+#+begin_src jupyter-julia
+  let
+      params = @set full_prototype.N = 8
+      @reset params.spectral_density.J = .1
+      @reset params.spectral_density.α = 0.2
+      @reset params.u = 2
+      params = auto_shift_bath(params, 0)
+      p = plot_overview_windowed(params, 2π * 100)
+
+      sol = WalkSolution(π, params |> ModelParameters)
+      plot!(t -> a_weight(t, sol) * 2π, label=L"$\rho_A(k=\pi)$", linestyle=:dash)
+      #lens!([0, 2π*10], [0, 1], inset=(1, bbox(.45,.1, .5,.5)))
+      savefig(plotsdir("overview_shifted_few_windowed.tikz"))
+      p
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/06cbbe8d62fdbba578e40eb0a354b69325312b54.svg]]
+
+
+#+begin_src jupyter-julia
+  let
+      params = @set full_prototype.N = 8
+      @reset params.spectral_density.J = 200
+      @reset params.spectral_density.α = 0.2
+      @reset params.u = 2
+      #params = auto_shift_bath(params, 0)
+
+      sol = WalkSolution(0, params |> ModelParameters)
+      p = plot(t -> a_weight(t, sol) * 2π, 0, 2, label=L"$\rho_A(k=0,t)$", xlabel=L"$t$")
+      plot!(t -> ρ_A_mean(t, sol) * 2π, 0.01, 2, label=L"$\rho_A(k=0)$ average")
+      plot!(t -> ρ_A_mean(sol) * 2π, 0.01, 2, label=L"$\rho_A(k=0)$")
+      #lens!([0, 2π*10], [0, 1], inset=(1, bbox(.45,.1, .5,.5)))
+      savefig(plotsdir("strong_coupling_oscillations.tikz"))
+      p
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/0b9aa049bc01ba24468c8d1d7939f7289f074cab.svg]]
+
+* Phase Diagrams
+#+begin_src jupyter-julia
+  let
+      params = @set full_prototype.N = 8
+      @reset params.spectral_density.J = .01
+      @reset params.spectral_density.α = 0
+      #@reset params.discretization = ExponentialBathDiscretization
+
+      @reset params.u = 2
+      #params = auto_shift_bath(params, 0)
+      #p = plot_overview_windowed(params, 2π * 10)
+
+      par = ModelParameters(params)
+      sol = WalkSolution(0, par)
+      plot(t -> a_weight(t, sol) * 2π, 0.1, 10, label=L"$\rho_A(k=\pi)$", linestyle=:dash)
+      plot!(t -> analytic_time_averaged_displacement(t, par))
+      hline!([analytic_time_averaged_displacement(par)])
+      # #lens!([0, 2π*10], [0, 1], inset=(1, bbox(.45,.1, .5,.5)))
+      # savefig(plotsdir("overview_shifted_few_windowed.tikz"))
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/d09eb8b3326ec9c005cd512bdf5344a961e5cffc.svg]]
+
+#+begin_src jupyter-julia
+  let
+      params = @set full_prototype.N = 100
+      @reset params.spectral_density.J = .01*5
+
+      p = plot_phase_diagram(params, 8, window=true, shift_A=true)
+      savefig(plotsdir("phase_diag_100.tikz"))
+      p
+  end
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+: maximum(displacement) = 0.9993007523179109
+[[file:./.ob-jupyter/6546ac44ed9d5830c2131f2bd85c57eafc86a90a.svg]]
+:END:
+
+
+#+begin_src jupyter-julia
+  let
+      params = @set full_prototype.N = 100
+      @reset params.spectral_density.J = .05
+
+      pgfplotsx()
+      p = plot_phase_diagram(params, 8, window=false)
+      savefig(plotsdir("phase_diag_100_nowindow.tikz"))
+      p
+  end
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+: maximum(displacement) = 0.9597914082436544
+[[file:./.ob-jupyter/365dae77cb914c16dfbca25d72fefc8eec56238e.svg]]
+:END:
+
+
+#+begin_src jupyter-julia
+  let
+      params = @set full_prototype.N = 100
+      @reset params.spectral_density.J = .05
+
+
+      p = plot_phase_diagram(params, 8, shift_A=false)
+      savefig(plotsdir("phase_diag_100_nowindow_noshift.tikz"))
+      p
+
+  end
+#+end_src
+
+#+RESULTS:
+: f326b905-6f62-472e-b71d-dde3030860da
+
+
+#+begin_src jupyter-julia
+  let
+      params = @set full_prototype.N = 10
+      @reset params.spectral_density.J = 10
+
+
+      p = plot_phase_diagram(params, 10, shift_A=false)
+      savefig(plotsdir("phase_diag_10_strong.tikz"))
+      p
+  end
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+: maximum(displacement) = 0.529063957771869
+[[file:./.ob-jupyter/fce650487a2d6347f9ec5377a67f73133db34fef.svg]]
+:END:
+
+
+#+begin_src jupyter-julia
+    let
+        us = LinRange(0, 4, 100)
+        αs = [0.1, 2] |> sort
+        pgfplotsx()
+        params = @set full_prototype.spectral_density.J = .01*5
+        @reset params.spectral_density.α = αs[1]
+        @reset params.u = 0
+        @reset params.N = 100
+
+        p = plot(xlabel=L"$u$", ylabel=L"$\langle m \rangle$")
+        param_fun = @parametrize_properties params spectral_density.α u
+        function current_params(α, u)
+            auto_shift_bath(param_fun(α, u), 0)
+        end
+        for α in αs
+            τ = recurrence_time(current_params(α, 0))
+
+            #plot!(us,  u -> analytic_time_averaged_displacement(current_params.(α, u) |> ModelParameters), label=L"$\alpha = %$α$")
+            plot!(us,  u -> analytic_time_averaged_displacement(.5τ, .95τ, current_params.(α, u) |> ModelParameters), label=L"$\alpha = %$α$")
+        end
+
+        savefig(plotsdir("transition_u_graphs_wider.tikz"))
+        p
+    end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/d3b6eaa74970271a25132636d8d2f61cffb0895f.svg]]
+
+
+#+begin_src jupyter-julia
+  let
+      us = LinRange(0, 1, 3)
+      αs = [0.1, 2] |> sort
+      pgfplotsx()
+      params = @set full_prototype.spectral_density.J = .01 * 3
+      @reset params.spectral_density.α = αs[1]
+      @reset params.u = 0
+      @reset params.N = 100
+
+      p = plot(xlabel=L"$u$", ylabel=L"$\langle m \rangle$")
+      param_fun = @parametrize_properties params spectral_density.α u
+      function current_params(α, u)
+          auto_shift_bath(param_fun(α, u), 0).ω_A
+      end
+
+      for α in αs
+          plot!(us,  u -> current_params(α, u), label=L"$\alpha = %$α$")
+      end
+
+      #savefig(plotsdir("transition_u_graphs_wider.tikz"))
+      p
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/62c18bf05d1ea8194a1562b0ab1f37fd9ac37ad7.svg]]

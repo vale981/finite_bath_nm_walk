@@ -17,6 +17,7 @@
 #+end_src
 
 #+RESULTS:
+: [32m[1m  Activating[22m[39m project at `~/Documents/org/roam/data/c4/5097d2-2599-426d-82db-6ecfb5207151`
 
 
 #+begin_src jupyter-julia
@@ -78,7 +79,7 @@ coupling strengths and look at the minima of \(ρ_A\) we get
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/b3f481b092ae31a1bd3b78e7d16b4e87b429c9be.svg]]
+[[file:./.ob-jupyter/d4f9211045e88c23edf2b687507a6d533aa5040b.svg]]
 
 We see that \(\abs{α_A}^2\) is indeed a lower bound for \(\ev{ρ_A}\),
 but that the minima in \(ρ_A\) tell a clearer story. The bound seems
@@ -93,9 +94,9 @@ For this coupling strength  \(\abs{α_A}^2\) is not dominant at low
 I wonder if we can get good estimates for the  \(\abs{α_j}^2\) as well.
 #+begin_src jupyter-julia
   let
-      N = 1000
-      params = @set full_prototype.spectral_density.α = .1
-      @reset params.spectral_density.J = 1e-2
+      N = 100
+      params = @set full_prototype.spectral_density.α = .5
+      @reset params.spectral_density.J = .1
       @reset params.N = 200
 
       e, g = discretize_bath(params)
@@ -109,7 +110,7 @@ I wonder if we can get good estimates for the  \(\abs{α_j}^2\) as well.
       A(j) = usum(j, 1)
       B(j) = usum(j, 2)
       AA(j) = A(j) + e[j] - params.ω_A
-      Δω(j) = -1 / (B(j) + 1) * (AA(j) / 2 - sqrt(AA(j) ^ 2 / 4 + (B(j) + 1) * abs2(g[j])))
+      Δω(j) = sign(AA(j)) / (B(j) + 1) * (abs(AA(j) / 2) - sqrt(AA(j) ^ 2 / 4 + (B(j) + 1) * abs2(g[j])))
       real_Δω = Vector(sol.energies[2:end] .- e)
       #@show e, Δω.(1:length(e)), sol.energies[2:end] .- e
       #e[1] + real_Δω[1] - params.ω_A + sum(abs2.(g[1:end .!=1]) ./ (e[1:end .!=1] .- (e[1]))) + sum(abs2.(g[1:end .!=1]) ./ ((e[1:end .!=1] .- (e[1]))) .^ 2) * real_Δω[1] -  (abs2(g[1]) / real_Δω[1])
@@ -123,8 +124,8 @@ I wonder if we can get good estimates for the  \(\abs{α_j}^2\) as well.
 
 #+RESULTS:
 :RESULTS:
-: sol.energies[1] = -5.877171918323193e-17
-[[file:./.ob-jupyter/f006b70b2832d2f1fc21c4726db9a3792569381f.svg]]
+: sol.energies[1] = -1.2335263679594675e-17
+[[file:./.ob-jupyter/165ae963513a7b1aa3f9b0c7cf842c8edef06496.svg]]
 :END:
 
 Indeed we can reasonably well, if the coupling is weak enough. The
@@ -161,7 +162,6 @@ first mode needs some more love, esecially in the subohmic case.
           ω_c = params.spectral_density.ω_c
           α = params.spectral_density.α
           J = params.spectral_density.J
-          N = params.N
           (((1/sqrt(s)-1) * ω_c^2/(J*(α+1))+1/(1-α))/zeta(2-α))^(1/(1-α))
       end
 
@@ -170,22 +170,23 @@ first mode needs some more love, esecially in the subohmic case.
       end
 
       params = @set full_prototype.spectral_density.J = .01
-      @reset params.discretization = ExponentialBathDiscretization
+      #@reset params.discretization = ExponentialBathDiscretization
       parameters = @parametrize_properties params N spectral_density.α
       p = plot(xlabel="α", ylabel=raw"$|α_A|^2$")
-      s = .01
-      α_c = .5
-      N = trunc(Int, scale(s, parameters(1, α_c)))
-      αs = LinRange(0, 2, 10)
-      plot!(αs, α2_A.(parameters.(N, αs)), label="N=$(N)")
+      s = .95
+      α_c = .9
+      αs = LinRange(0.1, 1, 100)
+      N = scale.(s, parameters.(1, αs))
+      # plot!(αs, α2_A.(parameters.(N, αs)), label="N=$(N)")
       # plot!(αs, U_A.(parameters.(N, αs)), label="N=$(N)")
       #plot!(αs, U_A_theo.(parameters.(N, αs)), label="N=$(N)")
-      hline!([s])
-      vline!([α_c])
+      # hline!([s])
+      # vline!([α_c])
+      plot!(αs, N)
       p
   end
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/fb1407a05f0f763771a4904f68850a12b6131655.svg]]
+[[file:./.ob-jupyter/09dfb49cace7ad38a015e1e7adc8a77b9dd53124.svg]]
 Apparrently the scaling is better with the integral discretization.
