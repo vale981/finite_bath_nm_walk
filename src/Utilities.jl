@@ -16,10 +16,10 @@ using ..WalkModel
 using LaTeXStrings
 import Plots: heatmap, hline!, vline!
 import Statistics: mean
-using Plots
 import ConstructionBase: setproperties
 using Accessors: @set, @reset
 using LinearAlgebra
+using CairoMakie
 
 function plot_analytic_phase_diagram(grid_N::Integer=50; α_limits::Tuple{Real,Real}=(0, 2), u_limits::Tuple{Real,Real}=(0, 2),
     num_bath_modes::Integer=200, bath_discretization::Function=exponential_energy_distribution, coupling_strength::Real=0.01, ω_c::Real=1, ε_min::Real=0, integrand=integrand_diagonalization, T::Real=0, normalize::Bool=true)
@@ -186,7 +186,7 @@ end
 
 function plot_phase_diagram(params::ExtendedModelParameters, grid_N::Integer=50;
     α_limits::Tuple{Real,Real}=(0, 2), u_limits::Tuple{Real,Real}=(0, 2), shift_A::Bool=true, shift_k::Real=0,
-    window::Bool=true, window_k::Real=π)
+    window::Bool=true)
     displacement = Array{Float64}(undef, grid_N, grid_N)
 
     αs = collect(LinRange(α_limits..., grid_N))
@@ -197,8 +197,8 @@ function plot_phase_diagram(params::ExtendedModelParameters, grid_N::Integer=50;
 
     Threads.@threads for i in 1:grid_N
         for j in 1:grid_N
-            α = αs[j] + dα/2
-            u = us[i] + du/2
+            α = αs[i] + dα/2
+            u = us[j] + du/2
 
 
             current_params = @set params.spectral_density.α = α
@@ -225,11 +225,15 @@ function plot_phase_diagram(params::ExtendedModelParameters, grid_N::Integer=50;
 
     @show maximum(displacement)
 
-    p = heatmap(αs, us, displacement, xlabel=L"$\alpha$", ylabel=L"$u$", title=L"$\langle m\rangle$")
-    vline!([1], label=false, color=:white)
-    hline!([1], label=false, color=:white)
+    f = CairoMakie.Figure()
+    a = CairoMakie.Axis(f[1,1], xlabel=L"$\alpha$", ylabel=L"$u$", title=L"$\langle m\rangle$")
 
-    p
+    heatmap = CairoMakie.heatmap!(a, αs, us, displacement)
+    CairoMakie.vlines!(a, [1], label=false, color=:white)
+    CairoMakie.hlines!(a, [1], label=false, color=:white)
+    CairoMakie.Colorbar(f[:, end+1], heatmap)
+    CairoMakie.colsize!(f.layout, 1, CairoMakie.Aspect(1, 1))
+    f
 end
 
 function plot_A_overlap(params::ModelParameters, k::Real=0)

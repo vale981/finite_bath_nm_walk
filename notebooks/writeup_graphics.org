@@ -5,23 +5,24 @@
   using Revise
   @quickactivate "discrete_walk"
 
-  using Plots
-  using PGFPlotsX
-  pgfplotsx()
+  # using Plots
+  # using PGFPlotsX
+  # pgfplotsx()
 
   using LinearAlgebra
   using Accessors
   using Statistics
   using LaTeXStrings
-  using Plots.Measures
+  # using Plots.Measures
   Revise.includet(srcdir("WalkModel.jl"))
   using .WalkModel
   Revise.includet(srcdir("Utilities.jl"))
   using .Utilities
+  using CairoMakie
+  CairoMakie.activate!(type = "svg")
 #+end_src
 
 #+RESULTS:
-: [32m[1m  Activating[22m[39m project at `~/Documents/org/roam/data/c4/5097d2-2599-426d-82db-6ecfb5207151`
 
 
 #+begin_src jupyter-julia
@@ -105,18 +106,20 @@ weak and strong coupling.
 * Bound Surface
 #+begin_src jupyter-julia
   let
-      pgfplotsx()
-      αs = LinRange(0.001, .9, 10)
-      ρs = LinRange(.001, 1, 100)
-      p = plot(ρs, αs, (ρ, α) -> minimal_N(ρ, α, .05, 1) |> log10, st=:surface, camera=(20, 20), xlabel=L"$\rho_A$ target", ylabel=L"$\alpha$", zlabel=L"\log_{10} N", label=:false)
-      #plot!(size=(800, 500))
-      savefig(plotsdir("N_formula_surface.tikz"))
-      p
+      αs = LinRange(0.001, .9, 200)
+      ms = LinRange(.0, 1, 200)
+      f, a, c = contourf(ms, αs, (m, α) -> minimal_N(1-m, α, .01, 1) |> log10,
+                         levels=20,
+                         axis=(xlabel=L"\langle m(u=\infty)\rangle", ylabel=L"\alpha"))
+
+      Colorbar(f[1, 2], c, label=L"\log_{10}N",)
+      save(plotsdir("N_formula_contour.pdf"), f)
   end
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/9d71d85768cf2961937f3e20716eabf501d4751f.svg]]
+: CairoMakie.Screen{PDF}
+:
 
 * Shift vs No-Shift
 #+begin_src jupyter-julia
@@ -359,3 +362,131 @@ weak and strong coupling.
 
 #+RESULTS:
 [[file:./.ob-jupyter/62c18bf05d1ea8194a1562b0ab1f37fd9ac37ad7.svg]]
+
+* Worked Example
+Let us suss out the required number of modes.
+#+begin_src jupyter-julia :results none
+  α = .1
+  m_target = .8
+  g² = .01
+#+end_src
+
+The estimation formula gives
+#+begin_src jupyter-julia
+  N_min = minimal_N(1-m_target, α, g², 1)
+#+end_src
+
+#+RESULTS:
+: 103.10394603150304
+
+We can also play with the target \(\ev{m}\) to see what ballpark we're
+in
+#+begin_src jupyter-julia
+  let
+      fig = Figure(resolution=(1000, 300))
+      ax = Axis(fig[1,1], xlabel=L"\langle m\rangle", ylabel=L"N", yscale=log10)
+      for g in LinRange(.01, .05, 5)
+          g = round(g, sigdigits=2)
+          lines!(ax, LinRange(0, (.99), 1000), m -> minimal_N(1-m, α, g, 1), label=L"g_0^2=%$g")
+      end
+      axislegend(ax, position=:lt)
+      save(plotsdir("example_N_limits.pdf"), fig)
+      fig
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/a9df3d09381c798471c6746028ca4e70d96ae7d0.svg]]
+
+
+which also fullfills the lower bound
+#+begin_src jupyter-julia
+  1/g²
+#+end_src
+
+#+RESULTS:
+: 100.0
+
+
+We may then continue to plot
+#+begin_src jupyter-julia
+  function plot_slices(f, αs, u_max, N_u, g², N)
+      us = LinRange(0, u_max, N_u)
+      αs = αs |> sort
+
+      params = @set full_prototype.spectral_density.J = g²
+      @reset params.spectral_density.α = αs[1]
+      @reset params.u = 0
+      @reset params.N = N
+
+      ax = Axis(f, xlabel=L"$u$", ylabel=L"$\langle m \rangle$", title=L"$g_0^2=%$(round(g², sigdigits=2))$, $N=%$N$")
+      ylims!(ax, 0, 1)
+
+      #p = plot()
+      param_fun = @parametrize_properties params spectral_density.α u
+      function current_params(α, u)
+          auto_shift_bath(param_fun(α, u), 0)
+      end
+      for α in αs
+          τ = recurrence_time(current_params(α, 0))
+
+
+          scatterlines!(ax, us,  u -> analytic_time_averaged_displacement(.5τ, .95τ, current_params.(α, u) |> ModelParameters);
+                        label=L"$\alpha = %$α$ with windowing", linestyle=:dash)
+
+          scatterlines!(ax, us,  u -> analytic_time_averaged_displacement(current_params.(α, u) |> ModelParameters);
+                        label=L"$\alpha = %$α$", linestyle=:dot)
+      end
+      hlines!(ax, [.8], color="gray", label=L"target $\langle m\rangle$")
+      #axislegend(ax, position=:lt)
+      ax
+  end
+  function plot_slices(αs, u_max, N_u, g², N)
+      f = Figure()
+      ax = plot_slices(f[1,1], αs, u_max, N_u, g², N)
+      f, ax
+  end
+#+end_src
+
+#+RESULTS:
+: plot_slices (generic function with 3 methods)
+
+#+begin_src jupyter-julia
+  let
+      f = Figure(resolution=(1000, 500))
+      n_u = 10
+      ax = nothing
+      for i in 1:3
+          for j in 1:3
+              plot_slices(f[1,i], [α, 2], 4, n_u, g²*i, trunc(Int, N_min+1))
+              ax = plot_slices(f[2,i], [α, 2], 4, n_u, g²*i, trunc(Int, N_min/2+1))
+          end
+      end
+      Legend(f[1, 4], ax)
+      save(plotsdir("example_cuts.pdf"), f)
+      f
+  end
+
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/dd17b9f29b061d6b8656062892195f84d3968036.svg]]
+
+#+begin_src jupyter-julia
+  let
+      params = @set full_prototype.spectral_density.J = .03
+      @reset params.N = 104
+
+      f = plot_phase_diagram(params, 8; α_limits=(0, 2), u_limits=(0,4))
+      resize!(f.scene, (500, 500))
+      resize_to_layout!(f)
+      save(plotsdir("example_full_diag.pdf"), f)
+      f
+  end
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+: maximum(displacement) = 0.9983163188329705
+[[file:./.ob-jupyter/ced3715204c326cd9a0d49ffc3232619764f095d.svg]]
+:END:

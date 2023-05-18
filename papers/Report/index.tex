@@ -591,9 +591,9 @@ a particular value for a given \(α\) yields
 
 \begin{figure}[tp]
   \centering
-  \includegraphics[width=.8\linewidth]{plots/N_formula_surface.tikz}
+  \includegraphics[width=.8\linewidth]{plots/N_formula_contour}
   \caption{\label{fig:N_formula_surface} \Cref{eq:19} evaluated for
-    \(g_{0}^{2}=0.05\) and \(ω_{c}=1\).  For \(α\lesssim 4\) we can
+    \(g_{0}^{2}=0.01\) and \(ω_{c}=1\).  For \(α\lesssim 4\) we can
     expect relatively good results for \(\ev{m}\) for
     \(\mathcal{O}(100)\) bath levels.}
 \end{figure}
@@ -639,7 +639,10 @@ strength. Thus it would be of advantage experimentally, to average
 \(ρ_{A}\) over a time interval that excludes the revival and maybe
 even the initial decay phase. In such cases \cref{eq:23} will
 overestimate the number of required bath
-levels. \Cref{fig:overview_shifted} highlights such a case.
+levels. \Cref{fig:overview_shifted} highlights such a case. It will
+therefore be useful to average \(\ev{m(t)}\) over a time interval of
+\(\bqty{\frac{τ_{R}}{2}, \frac{9}{10} τ_{R} }\) where \(τ_{R}=2π N/ω_{c}\)
+is the approximate time of the first recurrence.
 \begin{figure}[ht]
   \centering
   \begin{subfigure}[t]{0.45\textwidth}
@@ -683,14 +686,33 @@ regardless of \(α\). However, this is not too problematic, as this
 means that those \(ρ_{A}(k)\) simply don't contribute in the integral
 \cref{eq:46}. On the other hand \(\abs{v(0)}\geq \abs{v(k\neq 0)}\)
 can also lead to the effect, that the decay of \(ρ_{A}\) is slower for
-\(k\neq 0\) than for \(k=0\). For \(u\approx 1\) there even are values of
-\(k\) where \(v(k)\approx 0\) so that no decay takes place before
+\(k\neq 0\) than for \(k=0\). For \(u\approx 1\) there even are values
+of \(k\) where \(v(k)\approx 0\) so that no decay takes place before
 recurrence which will show up as a finite size effect and can be
 witnessed in \cref{fig:transition_u_graphs.tikz}. However for \(u\)
-sufficiently far from \(1\) this effect becomes minor.
+sufficiently far from \(1\) this effect becomes minor. Also
+\(\eval{∂_{k}\abs{v(k)}^{2}}_{k=0}=0\) so we have a non-vanishing
+region where \(ω_{A}\) is chosen appropriately.
 
-Also \(\eval{∂_{k}\abs{v(k)}^{2}}_{k=0}=0\) so we have a
-non-vanishing region where \(ω_{A}\) is chosen appropriately.
+
+For \(u\ll 1\) or \(u\gg 1\) the amplitude
+\(\abs{v(k)} \approx \abs{v(0)}\) so that we can use our estimate of
+\(ρ_{A}(0)\approx ρ_{A}(k)\)
+\begin{equation}
+  \label{eq:34}
+  \ev{m} \approx ∫_{0}^{2π} (1-ρ_{A}(0)) \dv{ϕ}{k}\frac{\dd{k}}{2π} =
+  Θ(u-1)\,\pqty{1-ρ_{A}(0)},
+\end{equation}
+which is the \(\ev{m}\) value that the curve \(\ev{m}(u)\) will
+saturate to. For \(u\gg 1\) we can replace
+\begin{equation}
+  \label{eq:55}
+  \abs{α_{A}}=\sqrt{ρ_{A}}=\sqrt{1-\ev{m(u=∞)}}
+\end{equation}
+in \cref{eq:19} to estimate the number of bath modes required, where
+\(\ev{m(u=∞)}\) is the desired value of the mean displacement.  As
+mentioned above, this formula likely overestimates the required
+\(N\) but may serve as a starting point.
 
 Solving the full model with the \(B\) site preserved may alleviate
 those ambiguities further and allow for the calculation of a berry
@@ -699,6 +721,9 @@ Hamiltonian, as all phases can be absorbed into the basis
 states. Therefore no nontrivial berry phase can arise.
 
 
+
+\subsubsection{Decay Rate}
+\label{sec:decay-rate}
 The decay rate of \(ρ_{A}(k, t)\) can be estimated through the golden
 (for a linear density of states) rule by setting local density of
 states to \(ω_{c}/N\) and setting the squared matrix element to
@@ -706,15 +731,32 @@ states to \(ω_{c}/N\) and setting the squared matrix element to
 \begin{equation}
   \label{eq:24}
   Γ=2π\frac{N}{ω_{c}} J(ω_{A}) \frac{ω_{c}}{N} = 2π J(ω_{A}) =
-  2π \frac{g_{0}^{2}}{ω_{c}} \pqty{\frac{ω_{A}}{ω_{c}}}^{α}.
+  2π (α+1)\frac{g_{0}^{2}}{ω_{c}} \pqty{\frac{ω_{A}}{ω_{c}}}^{α}.
 \end{equation}
+
+In the continuum limit and for \(α\to 0\) this becomes
+\begin{equation}
+  \label{eq:56}
+  Γ = 2π \frac{g_{0}^{2}}{ω_{c}}
+\end{equation}
+which may be useful as a rough estimate for a minimal coupling strength.
+
 Thus, averaging \(ρ_{A}\) over a time span between \(\approx 1/(2Γ)\)
 and the recurrence time \(\approx 2π N / ω_{c}\) will make the phase
-diagram sharper as is demonstrated in . Note that \(g_{0}^{2}\sim \abs{v(k)}^{2}\) so that
-\(Γ\) may not be expected to give a very rigorous timescale but still
-might be useful as an estimator. Numerically one can of course use the
-results of the last section to reconstruct the full solution and get a
-more accurate estimate.
+diagram sharper as is demonstrated in
+\cref{fig:transition_u_graphs.tikz}.
+
+Note that \(g_{0}^{2}\sim \abs{v(k)}^{2}\) so that \(Γ\) may not be
+expected to give a very rigorous timescale but still might be useful
+as an estimator. Numerically one can of course use the results of the
+last section to reconstruct the full solution and get a more accurate
+estimate.
+
+Using \cref{eq:56} we can conclude that \(ω_{c}^{2}\)
+\begin{equation}
+  \label{eq:57}
+  \frac{ω_{c}^{2}}{g_{0}^{2}} \lesssim N.
+\end{equation}
 
 \subsection{Phase Diagram}
 \label{sec:phase-diagram}
@@ -859,7 +901,125 @@ where \(E_{n}(z)=∫_{1}^{∞}\eu^{-zt}/t^{n}\dd{t}\) is the exponential
 integral.
 
 
+\section{Recipe for Obtaining the Phase Diagram}
+\label{sec:recipe-obta-phase}
+This section gives a condensed overview of how to choose the model
+parameters. A worked example is provided along with plots of the
+results.  Throughout we choose \(ω_{c}=1\) but still include it in the
+formulas. The parameter \(v\) in the model \cref{eq:37} becomes
+redundant due to the choice of the normalization of the spectral
+density and can be set to unity.
 
+\subsection{Discretization of The Bath}
+\label{sec:discretization-bath-1}
+The simplest choice is
+\begin{equation}
+  \label{eq:53}
+  \begin{aligned}
+    x_{i} &= ω_{c}\frac{i}{N} & ω_{i} &= ω_{c} \frac{2i-1}{2N} & η_{i}^{2}
+    &= ∫_{ω_{c}\frac{i-1}{N}}^{ω_{c}\frac{i}{N}}J(ω)\dd{ω} = \frac{g_{0}^{2}}{N^{α+1}} \pqty{i^{α+1}-(i-1)^{α+1}}.
+  \end{aligned}
+\end{equation}
+% \begin{equation}
+%   \label{eq:32}
+%   \begin{aligned}
+%     ω_{j} &= ω_{c}\frac{j}{N} & η_{j}^{2} = J_{α} ω_{j}^{α}
+%                                 \frac{ω_{c}}{N} = \frac{\abs{v(k)}^{2}}{\abs{v(0)}^{2}}\,{g_{0}^{2}(α+1)} \frac{j^{α}}{N^{α+1}}
+%   \end{aligned}
+% \end{equation}
+where \(v(k)= v+v' \eu^{\iu k} = v (1+u \eu^{\iu k})\) and should be
+sufficient. For more elaborate constructions and more background
+information see \cref{sec:discretization-bath}.
+
+\subsection{Coupling Strength and Number of Bath States}
+\label{sec:coupling-strength}
+
+The general requirement is that\footnote{See
+  \cref{sec:mean-displacement,sec:exact-solution}}
+\(N^{-1}ω_{c}^{2} \lesssim g_{0}^{2}\ll ω_{c}^{2} (α + 1) \). On the
+other hand, one does not want the dynamics to be too slow so that
+revivals occur too soon. Therefore we pick a coupling strength so that
+the aforementioned condition is fulfilled with a reasonable number of
+bath modes.
+
+We then evaluate
+\begin{equation}
+  \label{eq:54}
+  N = \bqty{\pqty{\frac{ω_{c}^{2}}{g_{0}^{2}}\frac{\frac{1}{\sqrt{1-\ev{m}}}-1}{(α+1)}+\frac{1}{1-α}}\frac{1}{ζ(2-α)}}^{\frac{1}{1-α}}
+\end{equation}
+to see if it matches the order of magnitude of bath modes that can be
+achieved experimentally for an \(α\lesssim 1/2\). Here \(\ev{m}\) is
+the desired long time average of the mean displacement at a specific
+\(α\) for \(u\to ∞\).  The choice of \(α\) in this formula specifies,
+where one would like to have universal values for the phase transition
+as a function of \(u\). If \cref{eq:54} doesn't match the order of
+magnitude of the first estimate of \(N\), the desired \(\ev{m}\) has
+to be reconsidered (lowered). Alternatively the sharpness of the phase
+transition on the \(α\) axis can be lowered by choosing a lower \(α\)
+in the above.
+
+
+For concreteness, let us choose \(α=0.1\) and \(g_{0}^{2}=0.01\) and
+\(\ev{m}=.8\). The choice of the mean displacement relatively far from
+\(1\) is made in the expectation that a windowed average will improve
+it, as \cref{eq:54} only take the infinite time average into account
+which will be less because of revivals.  The above estimate
+\cref{eq:54} then yields \(N=104\) which is consistent with
+\(N^{-1}\lesssim g_{0}^{2}\). \Cref{fig:n_lim_ex} shows of the lower
+bound on \(N\) for a range of \(\ev{m}\) and \(g_{0}^{2}\).
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{plots/example_N_limits}
+  \caption{\label{fig:n_lim_ex} \cref{eq:54} evaluated for different
+    coupling strengths.}
+\end{figure}
+
+\subsection{Refining the Parameter Choices with Numerics}
+\label{sec:refin-param-choic}
+
+Once the parameters are chosen according to
+\cref{sec:coupling-strength}, numerics can be used to refine the
+parameter choices, as all of the above is based on rough estimates.
+
+A starting point would be to plot slices of constant \(α\) through the
+phase diagram, for the \(α\) chosen in \cref{sec:coupling-strength}
+and one that is larger than one. Adjustments of \(N\) and
+\(g_{0}^{2}\) may then be made to obtain the desired behavior with as
+few bath modes as possible. The \(α<1\) curve should saturate to zero
+and one for \(u\to 0\) and \(u\to ∞\) respectively with the sharpness
+of the transition being dependent on \(N\), whereas the \(α>1\) curve
+should saturate at a non-universal value.
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{plots/example_cuts}
+  \caption{\label{fig:example_cuts} The \ac{mlong} \(\ev{m}\)
+    evaluated by exact diagonalization for multiple values of \(u\)
+    and \(α\) with and without windowing of the average. The original
+    target \(\ev{m}\) that was used in \cref{eq:54} is also shown.}
+\end{figure}
+
+To counter the effect of recurrences, the time average of \(\ev{m}\)
+should be taken over an interval
+\(\bqty{\frac{τ_{R}}{2}, 0.95 τ_{R} }\) where \(τ_{R}=2π N/ω_{c}\) is
+the approximate time of the first recurrence. These interval
+boundaries are a starting point and can be altered if desired.
+
+\Cref{fig:example_cuts} shows such a set of slices for different
+parameter choices. It is evident, that windowing the average does
+increase the sharpness of the phase diagram cuts.  further, we can see
+that if we allow for relatively large \(u\), we find
+\(\ev{m}\approx 1\) for \(u>2\) even for half the number of bath
+levels, if we double the coupling strength \(g_{0}^{2}\), although the
+best sharpness is obtained for \(N=104\) and \(g_{0}^{2}=0.03\).
+
+Using those values, we may plot the full phase diagram in \cref{fig:example_full_diag}.
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{plots/example_full_diag}
+  \caption{\label{fig:example_full_diag} The full phase diagram for
+    \(N=104\) bath modes and \(g_{0}^{2}=0.03\) using the windowed
+    average.}
+\end{figure}
 
 \printbibliography{}
 \printacronyms{}
@@ -872,3 +1032,4 @@ integral.
 %%% TeX-output-dir: "output"
 %%% TeX-engine: luatex
 %%% End:
+n
