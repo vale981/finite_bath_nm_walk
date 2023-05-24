@@ -1,4 +1,4 @@
-#+PROPERTY: header-args :session writeup_figures :kernel julia-1.8 :pandoc yes :async yes
+#+PROPERTY: header-args :session writeup_figures :kernel julia-1.9 :pandoc yes :async yes
 
 #+begin_src jupyter-julia
   using DrWatson
@@ -13,16 +13,17 @@
   using Accessors
   using Statistics
   using LaTeXStrings
-  # using Plots.Measures
   Revise.includet(srcdir("WalkModel.jl"))
   using .WalkModel
   Revise.includet(srcdir("Utilities.jl"))
   using .Utilities
   using CairoMakie
   CairoMakie.activate!(type = "svg")
+  set_theme!(fonts = (; regular = "/nix/store/dbn507rrsmgmdxwknhb3554nmkl0kvgi-gyre-fonts-2.005/share/fonts/truetype/texgyrepagella-regular.otf"))
 #+end_src
 
 #+RESULTS:
+: [32m[1m  Activating[22m[39m project at `~/Documents/org/roam/data/c4/5097d2-2599-426d-82db-6ecfb5207151`
 
 
 #+begin_src jupyter-julia
@@ -364,6 +365,9 @@ weak and strong coupling.
 [[file:./.ob-jupyter/62c18bf05d1ea8194a1562b0ab1f37fd9ac37ad7.svg]]
 
 * Worked Example
+:PROPERTIES:
+:ID:       f58f0685-c272-4a16-8659-ff7ceb82b6f0
+:END:
 Let us suss out the required number of modes.
 #+begin_src jupyter-julia :results none
   α = .1
@@ -382,6 +386,7 @@ The estimation formula gives
 We can also play with the target \(\ev{m}\) to see what ballpark we're
 in
 #+begin_src jupyter-julia
+  import Serialization as ser
   let
       fig = Figure(resolution=(1000, 300))
       ax = Axis(fig[1,1], xlabel=L"\langle m\rangle", ylabel=L"N", yscale=log10)
@@ -391,12 +396,11 @@ in
       end
       axislegend(ax, position=:lt)
       save(plotsdir("example_N_limits.pdf"), fig)
-      fig
+      ser.serialize(plotsdir("example_N_limits.ser"), fig)
   end
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/a9df3d09381c798471c6746028ca4e70d96ae7d0.svg]]
 
 
 which also fullfills the lower bound
@@ -449,7 +453,7 @@ We may then continue to plot
 #+end_src
 
 #+RESULTS:
-: plot_slices (generic function with 3 methods)
+: plot_slices (generic function with 2 methods)
 
 #+begin_src jupyter-julia
   let
@@ -463,13 +467,19 @@ We may then continue to plot
           end
       end
       Legend(f[1, 4], ax)
-      save(plotsdir("example_cuts.pdf"), f)
+      #save(plotsdir("example_cuts.pdf"), f)
       f
   end
 
 #+end_src
 
 #+RESULTS:
+[[file:./.ob-jupyter/f100dc2c4541f2126927e98aaeff95eb50e4fa64.svg]]
+
+
+
+
+
 [[file:./.ob-jupyter/dd17b9f29b061d6b8656062892195f84d3968036.svg]]
 
 #+begin_src jupyter-julia
@@ -489,4 +499,131 @@ We may then continue to plot
 :RESULTS:
 : maximum(displacement) = 0.9983163188329705
 [[file:./.ob-jupyter/ced3715204c326cd9a0d49ffc3232619764f095d.svg]]
+:END:
+
+
+#+begin_src jupyter-julia
+  g = .2
+#+end_src
+
+#+RESULTS:
+: 0.2
+
+#+begin_src jupyter-julia
+  let
+      params = @set full_prototype.spectral_density.J = g^2
+      @reset params.spectral_density.α = .1
+      @reset params.N = 50
+      @reset params.u = 4
+
+      params = auto_shift_bath(params, 0)
+      f = Figure(resolution=(400, .618 * 400), fontsize=10)
+      a, a_long = [Axis(f, xlabel=L"$ω_c t$", ylabel=L"\langle m\rangle")
+                   for f in [f[2,1], f[2, 2]]]
+      τ_R = recurrence_time(params)
+
+      reduced_params = ModelParameters(params)
+
+      sol = WalkSolution(0, reduced_params)
+      Label(f[1, 1:2], L"$u=%$(params.u)$, $\alpha=%$(params.spectral_density.α)$, $N=%$(params.N)$, $g_0/ω_c=%$g$", tellheight=true)
+      l1 = lines!(a, 0..2τ_R, t -> mean_displacement(t, reduced_params),  label=L"$\langle m(t)\rangle$")
+      l2 = lines!(a_long, 0..10τ_R, t -> mean_displacement(t, reduced_params),  label=L"$\langle m(t)\rangle$")
+      Γ = decay_rate(params)
+      l3 =lines!(a, 0..2τ_R, t -> 1-exp(-Γ * t),  label=L"$\langle \exp(-Γt)\rangle$", linestyle=:dash)
+      l4 = vlines!(a, [τ_R], color="gray", linestyle=:dash, label=L"τ_R")
+      f[3,1:2] = Legend(f, a, orientation=:horizontal, tellheight=true)
+      linkyaxes!(a, a_long)
+      hideydecorations!(a_long, grid=false)
+      trim!(f.layout)
+      #save(plotsdir("mean_displacement_example.pdf"), f)
+      f
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/ea197efd572c3fd18b7f01fd4a20f8c6643a7cea.svg]]
+
+#+begin_src jupyter-julia
+  let
+      params = @set full_prototype.spectral_density.J = g^2
+      @reset params.N = 50
+      res = 50
+
+      α_small = .1
+      α_large = 1.9
+      u_limits = (0,4)
+      τ_rec = recurrence_time(params)
+
+
+      f = Figure(resolution=(400*1.3, .618 * 400*1.5), fontsize=10)
+
+      grid_finite = f[1:2, 1] = GridLayout()
+      axis_finite_cuts = Axis(grid_finite[1, 1], ylabel=L"\langle{m}\rangle", xlabel=L"u")
+      grid_finite_heatmap = grid_finite[2, 1] = GridLayout()
+
+      grid_continuum = f[1:2, 2] = GridLayout()
+      axis_continuum_cuts = Axis(grid_continuum[1, 1], ylabel=L"\langle{m}\rangle", xlabel=L"u")
+      grid_continuum_heatmap = grid_continuum[2, 1] = GridLayout()
+
+      diag, ax_diag_fin, _ = plot_phase_diagram(grid_finite_heatmap, params, res; α_limits=(0, 2), u_limits=u_limits, colorbar=false)
+      for (i, α) in enumerate([α_small, α_large])
+          @reset params.spectral_density.α = α
+          params = auto_shift_bath(params, 0)
+          displacement_params = @parametrize_properties params u
+          lines!(axis_finite_cuts, u_limits[1]..u_limits[2], u -> analytic_time_averaged_displacement(.5 * τ_rec, .95 * τ_rec, displacement_params(u) |> ModelParameters),
+                 label=L"α=%$α", color=Cycled(i))
+          hlines!(ax_diag_fin, [α], color=Cycled(i))
+      end
+      Label(grid_finite[1, 1, Top()], L"Numerically Exact, $N=%$(params.N)$", halign=:center, fontsize=10, valign=:bottom,
+            padding = (0, 0, 5, 0))
+
+
+      diag, ax_diag, hm = plot_phase_diagram(grid_continuum_heatmap, params, res; α_limits=(0, 2), u_limits=u_limits, continuum=true, colorbar=false)
+      for (i, α) in enumerate([α_small, α_large])
+          @reset params.spectral_density.α = α
+          params = auto_shift_bath(params, 0)
+          displacement_params = @parametrize_properties params u
+          lines!(axis_continuum_cuts, u_limits[1]..u_limits[2], u -> analytic_time_averaged_displacement_continuum(displacement_params(u)),
+                 label=L"α=%$α", color=Cycled(i))
+          hlines!(ax_diag, [α], color=Cycled(i))
+      end
+      Label(grid_continuum[1, 1, Top()], L"Analytic, Weak Couping, $N=\infty$", halign = :center, fontsize=10,
+            padding = (0, 0, 5, 0))
+
+      linkaxes!(axis_finite_cuts, axis_continuum_cuts)
+      linkaxes!(ax_diag_fin, ax_diag)
+
+      linkxaxes!(ax_diag_fin, axis_finite_cuts)
+
+      hideydecorations!(ax_diag)
+      hideydecorations!(axis_continuum_cuts, grid=false)
+
+      hidexdecorations!.([axis_finite_cuts, axis_continuum_cuts], grid=false)
+      colorbar_layout = f[2, 3] = GridLayout()
+      Colorbar(colorbar_layout[1, 1], hm, vertical=true, tellheight=true)
+      Label(colorbar_layout[1, 1, Top()], text=L"\langle m\rangle", fontsize=10, padding=(0, 0, 6, 0))
+      axislegend(axis_continuum_cuts, tellheight=true, tellwidth=true, orientation=:vertical, position=:rc, padding=(10,10,2,2), rowgap=-5)
+
+      # Label(f[4, 1:2, Top()], text=L"$g_0/ω_c=%$g$", fontsize=11, padding=(0, 0, 5, 0), halign=:left)
+
+      colgap!(f.layout, 10)
+
+      for layout in [grid_finite, grid_continuum]
+          rowsize!(layout, 1, Auto(1))
+          rowsize!(layout, 2, Auto(2))
+          rowgap!(layout, 10)
+      end
+
+      trim!(f.layout)
+      save(plotsdir("example_finite_vs_continuum.pdf"), f)
+      f
+
+  end
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+: maximum(displacement) = 0.9966409308131559
+: maximum(displacement) = 1.0000000000109444
+[[file:./.ob-jupyter/768a2c69391666aa28fa56937e380a4948308a70.svg]]
 :END:

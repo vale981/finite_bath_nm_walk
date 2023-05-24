@@ -184,9 +184,9 @@ macro parametrize_properties(strct::Any, args...)
 end
 
 
-function plot_phase_diagram(params::ExtendedModelParameters, grid_N::Integer=50;
+function plot_phase_diagram(layout::CairoMakie.GridLayout, params::ExtendedModelParameters, grid_N::Integer=50;
     α_limits::Tuple{Real,Real}=(0, 2), u_limits::Tuple{Real,Real}=(0, 2), shift_A::Bool=true, shift_k::Real=0,
-    window::Bool=true)
+    window::Bool=true, continuum::Bool=false, colorbar::Bool=true)
     displacement = Array{Float64}(undef, grid_N, grid_N)
 
     αs = collect(LinRange(α_limits..., grid_N))
@@ -194,48 +194,62 @@ function plot_phase_diagram(params::ExtendedModelParameters, grid_N::Integer=50;
 
     dα = αs[2] - αs[1]
     du = us[2] - us[1]
-
     Threads.@threads for i in 1:grid_N
         for j in 1:grid_N
-            α = αs[i] + dα/2
-            u = us[j] + du/2
+            α = αs[i]
+            u = us[j]
 
 
             current_params = @set params.spectral_density.α = α
             @reset current_params.u = u
 
-            if shift_A
-                current_params = auto_shift_bath(current_params, shift_k)
-            end
-
-            τ_end = recurrence_time(current_params) * 0.95
-            if window
-                # τ = 1 / (decay_rate(current_params, window_k))
-                # if τ > τ_end
-                #     @show τ_end, α, u, decay_rate(current_params, window_k),  current_params.ω_A
-                #     error("Decay doesn't take place before recurrence.")
-                # end
-                displacement[i, j] = analytic_time_averaged_displacement(.5 * τ_end, τ_end, current_params |> ModelParameters)
+            if continuum
+                displacement[i, j] = analytic_time_averaged_displacement_continuum(current_params)
             else
-                #displacement[i, j] = mean_displacement(recurrence_time(current_params) * 0.95, current_params |> ModelParameters)
-                displacement[i, j] = analytic_time_averaged_displacement(current_params |> ModelParameters)
+                if shift_A
+                    current_params = auto_shift_bath(current_params, shift_k)
+                end
+
+                τ_end = recurrence_time(current_params)
+                if window
+                    τ = 3 / (decay_rate(current_params, 0))
+
+                    τ = min(τ, .5 * τ_end)
+                    # if τ > τ_end
+                    #     @show τ_end, α, u, decay_rate(current_params, window_k),  current_params.ω_A
+                    #     error("Decay doesn't take place before recurrence.")
+                    # end
+                    displacement[i, j] = analytic_time_averaged_displacement(τ, 0.95 * τ_end, current_params |> ModelParameters)
+                else
+                    #displacement[i, j] = mean_displacement(recurrence_time(current_params) * 0.95, current_params |> ModelParameters)
+                    displacement[i, j] = analytic_time_averaged_displacement(current_params |> ModelParameters)
+                end
             end
         end
     end
 
     @show maximum(displacement)
 
-    f = CairoMakie.Figure()
-    a = CairoMakie.Axis(f[1,1], xlabel=L"$\alpha$", ylabel=L"$u$", title=L"$\langle m\rangle$")
+    a = CairoMakie.Axis(layout[1, 1], ylabel=L"$\alpha$", xlabel=L"$u$")
 
-    heatmap = CairoMakie.heatmap!(a, αs, us, displacement)
-    CairoMakie.vlines!(a, [1], label=false, color=:white)
-    CairoMakie.hlines!(a, [1], label=false, color=:white)
-    CairoMakie.Colorbar(f[:, end+1], heatmap)
-    CairoMakie.colsize!(f.layout, 1, CairoMakie.Aspect(1, 1))
-    f
+    heatmap = CairoMakie.heatmap!(a, us, αs, displacement', colorrange=(0, 1))
+    # CairoMakie.vlines!(a, [1], label=false, color=:white)
+    # CairoMakie.hlines!(a, [1], label=false, color=:white)
+    if colorbar
+        CairoMakie.Colorbar(layout[:, end+1], heatmap, label=L"$\langle m\rangle$")
+    end
+    #CairoMakie.colsize!(layout, 1, CairoMakie.Aspect(1, 1))
+    layout, a, heatmap
 end
 
+function plot_phase_diagram(params::ExtendedModelParameters, args...; kwargs...)
+    f = CairoMakie.Figure()
+    layout = f[1, 1] = CairoMakie.GridLayout()
+    plot_phase_diagram(layout, params, args...; kwargs...)
+    return f
+end
+
+#function plot_phase_diagram_with_cuts(layout::CairoMakie.GridLayout, α_cuts::Vector{Real}, params::ExtendedModelParameters, args..., u_limits::Tuple{Real,Real}=(0, 2), window::Bool = true)
 function plot_A_overlap(params::ModelParameters, k::Real=0)
     H = hamiltonian(k, params)
     ψ_A = [1; zeros(num_bath_modes(params))]

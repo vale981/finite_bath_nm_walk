@@ -38,6 +38,7 @@ export auto_shift_bath
 export recurrence_time
 export minimal_N
 export decay_rate
+export analytic_time_averaged_displacement_continuum
 
 using Parameters
 import LinearAlgebra: diagm, eigen, ⋅
@@ -562,5 +563,21 @@ end
 minimal_N(ρ_A::Real, sd::OhmicSpectralDensity) = minimal_N(ρ_A, sd.α, sd.J, sd.ω_c)
 minimal_N(ρ_A::Real, params::ExtendedModelParameters) = minimal_N(ρ_A, params.spectral_density)
 
-decay_rate(params::ExtendedModelParameters, k::Real=π) = 2π * params.spectral_density(params.ω_A) * abs2(v(k, params))
+decay_rate(params::ExtendedModelParameters, k::Real=0) = π * params.spectral_density.J /params.spectral_density.ω_c * abs2(v(k, params)) / abs2(v(0, params))
+
+function ρ_A_continuum(k::Real, p::ExtendedModelParameters)
+    α = p.spectral_density.α
+    if α < 1
+        0
+    else
+        v_normed = abs2(v(k, p))/abs2(v(0, p))
+        1 / (1 + p.spectral_density.J * (α+1) * v_normed / (p.spectral_density.ω_c^(2) * (α-1)))^2 * 1/2π
+    end
+end
+
+function analytic_time_averaged_displacement_continuum(p::ExtendedModelParameters)
+    reduced_params = ModelParameters(p)
+    m, _ = hquadrature(k -> dϕ(k, reduced_params) * (1 / 2π - ρ_A_continuum(k, p)), 0, π, reltol=1e-5, abstol=1e-5)
+    2m
+end
 end
