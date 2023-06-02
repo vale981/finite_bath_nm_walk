@@ -20,13 +20,11 @@ headinclude=true,footinclude=false,BCOR=0mm]{scrartcl}
 In this report we reproduce the phase diagram obtained for an infinite
 reservoir in \refcite{Ricottone2020} using a finite number reservoir
 states and a finite coupling strength. The final result is presented
-in \cref{fig:example_finite_vs_continuum}. We introduce the details of
-the model and explain how \cref{fig:example_finite_vs_continuum} was
-produced. As we show in these notes, for the correct choice of
-coupling strength, \(N=50\) reservoir levels are likely not
-necessary. We expect to see a reasonable reproduction of the phase
-diagram even for a more modest number of reservoir levels, satisfying
-\(N\gg 1\).
+in \cref{fig:example_finite_vs_continuum}. As we show in these notes,
+for the correct choice of coupling strength, \(N=50\) reservoir levels
+are likely not necessary. We expect to see a reasonable reproduction
+of the phase diagram even for a more modest number of reservoir
+levels, satisfying \(N\gg 1\).
 
 \begin{figure}[H]
   \centering
@@ -57,13 +55,14 @@ The basic model is given by~\cite{Ricottone2020}
 \end{align}
 which describes an SSH chain with \(L\) sites, periodic boundary
 conditions, intra-cell hopping amplitude \(v\) and inter-cell hopping
-amplitude \(v\prime = uv\). The energy of each \(B\) site is detuned
-from the \(A\)-site energy \(ε_{A}\) by a shift \(ω\). Further, we add
-\(N\) extra ``reservoir'' modes \(b_{j,m}\) in each unit cell with
-energies \(ε_{j}\) that are coupled to the \(B\) sites via coupling
-strengths \(g_{j}\). We are using second quantized notation here,
-where \(a^{†}_{X,m}\ket{0} = \ket{X,m}\) creates a particle at
-sublattice site \(X\) and lattice site \(m\), and
+amplitude \(v\prime = u\cdot v\). The energy of each \(B\) site is
+detuned from the \(A\)-site energy \(ε_{A}\) by the detuning
+\(ω\). Further, we add \(N\) extra ``reservoir'' modes \(b_{j,m}\)
+with energies \(ε_{j}\) in each unit cell. Those modes are then
+coupled to the \(B\)-site in the unit cell via coupling strengths
+\(g_{j}\). We are using second quantized notation here, where
+\(a^{†}_{X,m}\ket{0} = \ket{X,m}\) creates a particle at sublattice
+site \(X\) and lattice site \(m\), and
 \(b^{†}_{j,m}\ket{0} = \ket{j,m}\) creates a particle in the \(j\)th
 reservoir mode at site \(m\). The \(a\) and \(b\) operators obey the
 usual bosonic commutation relations. This is equivalent to the
@@ -72,7 +71,7 @@ Hamiltonian preserves excitations.
 
 We are interested in the evolution of a particle on the laltice, the
 ``walker'', that is initially localized to one \(A\) site
-\(\ket{\psi(0)}=\ket{A,0}\).  The crucial observable
+\(\ket{\psi(0)}=\ket{A,0}\).  The crucial observable is
 \begin{equation}
   \label{eq:59}
   \ev{m(t)} \equiv ∑_{m}m {ρ_{\bar{A},m}(t)},
@@ -91,7 +90,7 @@ the structure of the reservoir, namely the choice of the energies
 
 To simplify calculations, we exploit the translational symmetry of the
 model to express it in momentum space and remove the \(B\) sites by a
-Schrieffer-Wolff transformation for large \(ω\) resulting in
+Schrieffer-Wolff transformation for large detuning \(ω\) resulting in
 \(H=∑_{k}H(k)\) with
 \begin{equation}
   \label{eq:61}
@@ -126,7 +125,7 @@ spectral density, which we choose to take the form of a power law
   J(ω)
   =
   \begin{cases}
-    \pqty{g_{0}^{2}\frac{(α+1)}{ω_{c}^{α+1}}} ω^{α} & \mathrm{for}\; 0\leq
+    {g_{0}^{2}\frac{(α+1)}{ω_{c}^{α+1}}} ω^{α} & \mathrm{for}\; 0\leq
                                                ω\leq ω_{c}\\
     0 & \mathrm{otherwise},
   \end{cases}
@@ -167,7 +166,7 @@ as is illustrated in \cref{fig:mean_displacement_example}.
     visualized by the dashed vertical lines.}
 \end{figure}
 
-The mean displacement decays to a steady state
+Also, the mean displacement decays to a steady state
 approximately\footnote{Obtained through the golden rule using a flat,
   continuous bath spectrum.} with a rate
 \begin{equation}
@@ -183,11 +182,12 @@ reservoir states required given a coupling strength
   N \gg \frac{ω_{c}^{2}}{2π^{2}g_{0}^{2}} .
 \end{equation}
 
-Further, there is a limit of strong coupling, where
-\(\ev{ρ_{A}(k, t)}\sim \cos[2](Ω t)\) with \(Ω=\sqrt{∑_{j}\abs{η_{j}}^{2}}\).
-As this limit leads to persistent oscillations rather than the
-behavior of \cref{fig:example_finite_vs_continuum} it has to be
-avoided by choosing
+Further, there exists a limit of strong coupling, where
+\(\ev{ρ_{A}(k, t)}\sim \cos[2](Ω t)\) with
+\(Ω=\sqrt{∑_{j}\abs{η_{j}}^{2}}\).  As this limit leads to persistent
+oscillations rather than the behavior of
+\cref{fig:example_finite_vs_continuum} it has to be avoided by
+choosing
 \begin{equation}
   \label{eq:2}
   g_{0} \ll ω_{c}.
@@ -208,13 +208,11 @@ average. Here we choose \(τ_{l}=0.5 τ_{R},\, τ_{h} = 0.95 τ_{R}\), as
 is visualized in \cref{fig:mean_displacement_example}.
 
 In the continuum limit revivals won't occur, so that we can take the
-limit of \(τ_{h}\to ∞\) and set \(τ_{l}=0\) without changing the
-result obtaining
+limit of \(τ_{h}\to ∞\) and \(τ_{l}=0\) obtaining
 \begin{equation}
   \label{eq:60}
   \ev{m} =  \lim_{T\to ∞} \frac{1}{T} ∫_{0}^{T}\ev{m(t)}\dd{t}.
 \end{equation}
-
 If \(ρ_{A}(k,t)\xrightarrow{t\to ∞}0\) for all \(k\), the long-time
 averaged mean displacement \(\ev{m}\) exhibits a universal behavior
 corresponding to the topological phase of the original SSH chain
@@ -223,12 +221,12 @@ corresponding to the topological phase of the original SSH chain
   \ev{m} = θ(u-1).
 \end{equation}
 In \refcite{Ricottone2020}, an infinite SSH chain (\(L=∞\)) was
-studied with the Born approximation and in the continuum limit for the
-reservoir. There, it was found that \(\ev{m}\) matches \cref{eq:63}
-precisely for \(α<1\), whereas it takes on non-universal values for
-\(α>1\). This behavior can also be obtained without employing the Born
-approximation and is presented in the right column of
-\cref{fig:example_finite_vs_continuum}.
+studied within the Born approximation and in the continuum limit for
+the reservoir. There, it was found that \(\ev{m}\) matches
+\cref{eq:63} precisely for \(α<1\), whereas it takes on non-universal
+values for \(α>1\). This behavior can also be obtained without
+employing the Born approximation and is presented in the right column
+of \cref{fig:example_finite_vs_continuum}.
 
 If we choose \(ω_{c}=1\) (choice of units) and \(g_{0}=0.2 ω_{c}\), we
 avoid the strong-coupling behavior \cref{eq:2}, while the criterion
