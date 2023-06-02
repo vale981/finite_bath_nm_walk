@@ -1,6 +1,6 @@
 \documentclass[fontsize=10pt,paper=b5,open=any,
 twoside=no,toc=listof,toc=bibliography,headings=optiontohead,
-captions=nooneline,captions=tableabove,english,DIV=15,numbers=noenddot,final,parskip=half-,
+captions=nooneline,captions=tableabove,english,DIV=15,numbers=noenddot,final,parskip=yes,
 headinclude=true,footinclude=false,BCOR=0mm]{scrartcl}
 \pdfvariable suppressoptionalinfo 512\relax
 \synctex=1
@@ -11,32 +11,38 @@ headinclude=true,footinclude=false,BCOR=0mm]{scrartcl}
 \addbibresource{references.bib}
 
 \title{The non-Markovian Quantum Walk for Finite Baths (Summary)}
-\date{May 26, 2023}
+\date{\today}
 \graphicspath{{plots}}
 
 
 \begin{document}
 \maketitle
-Herein we report how to reproduce the behavior found for non-Markovian
-quantum walk in the continuum limit with the Born approximation
-presented in \refcite{Ricottone2020} using a finite number of
-reservoir states and a finite coupling strength. The final result is
-presented in \cref{fig:example_finite_vs_continuum}. We introduce the
-details of the model and explain how
-\cref{fig:example_finite_vs_continuum} was produced.
+In this report we reproduce the phase diagram obtained for an infinite
+reservoir in \refcite{Ricottone2020} using a finite number reservoir
+states and a finite coupling strength. The final result is presented
+in \cref{fig:example_finite_vs_continuum}. We introduce the details of
+the model and explain how \cref{fig:example_finite_vs_continuum} was
+produced. As we show in these notes, for the correct choice of
+coupling strength, \(N=50\) reservoir levels are likely not
+necessary. We expect to see a reasonable reproduction of the phase
+diagram even for a more modest number of reservoir levels, satisfying
+\(N\gg 1\).
+
 \begin{figure}[H]
   \centering
   \includegraphics{plots/example_finite_vs_continuum}
   \caption{\label{fig:example_finite_vs_continuum} The full phase
     diagram and constant-\(α\) cuts obtained through numerical
-    diagonalization for \(N=50\) reservoir modes and though an
-    analytic calculation in the weak coupling limit for \(N\to
-    ∞\). All plots shown assume a coupling strength for
-    \(g_{0}=0.2 ω_{c}\). Here \(\ev{m}\) is the long-time
-    time-averaged walker displacement, \(u=v/v\prime\) is the ratio of
+    diagonalization for \(N=50\) reservoir modes (left) and through an
+    analytic calculation in the weak-coupling limit (right) for
+    \(N\to ∞\). All plots shown assume a coupling strength of
+    \(g_{0}=0.2 ω_{c}\). Here, \(\ev{m}\) is the long-time
+    time-averaged walker displacement, \(u=v\prime/v\) is the ratio of
     the inter-cell to intra-cell hopping amplitudes of the underlying
-    SSH model, and \(α\) characterizes the bath spectral density
-    \(J(ω)\sim ω^{α}\).}
+    SSH model, and \(α\) characterizes the bath spectral density at
+    low frequency, \(J(ω)\sim ω^{α}\). We used \cref{eq:66} to adjust
+    the energy \(ω_{A}\) of the \(A\) site to compensate for level
+    repulsion.}
 \end{figure}
 
 The basic model is given by~\cite{Ricottone2020}
@@ -45,37 +51,43 @@ The basic model is given by~\cite{Ricottone2020}
   H &= H_{A} +H_{\bar{A}} + V\\
   H_{A} &= ∑_{m=0}^{L-1}ε_{A} a_{A,m}^{†}a_{A,m} \\
   H_{\bar{A}} &= ∑_{m=0}^{L-1}{(ε_{A} + ω)a_{B,m}^{†}a_{B,m}}+
-                   ∑_{j}\bqty{ε_{j} b_{j,m}^{†}b_{j,m} + g_{j}
+                   ∑_{j=1}^{N}\bqty{ε_{j} b_{j,m}^{†}b_{j,m} + g_{j}
                    \pqty{a_{B,m}^{†}b_{j,m} + \hc}}\\
   V&=∑_{m=0}^{L-1} v\pqty{a_{A,m}^{†}a_{B,m}+ u a_{A,m}^{†}a_{B,m+1}} + \hc,
 \end{align}
 which describes an SSH chain with \(L\) sites, periodic boundary
-conditions, site energy detuning \(ω\) and extra ``reservoir'' modes
-\(b_{j,m}\) in each unit cell that are coupled to the \(B\) sites. We
-are using second quantized notation here, where
-\(a^{†}_{X,m}\ket{0} = \ket{X,m}\) creates a particle at sublattice
-site \(X\) and lattice site \(m\) and
+conditions, intra-cell hopping amplitude \(v\) and inter-cell hopping
+amplitude \(v\prime = uv\). The energy of each \(B\) site is detuned
+from the \(A\)-site energy \(ε_{A}\) by a shift \(ω\). Further, we add
+\(N\) extra ``reservoir'' modes \(b_{j,m}\) in each unit cell with
+energies \(ε_{j}\) that are coupled to the \(B\) sites via coupling
+strengths \(g_{j}\). We are using second quantized notation here,
+where \(a^{†}_{X,m}\ket{0} = \ket{X,m}\) creates a particle at
+sublattice site \(X\) and lattice site \(m\), and
 \(b^{†}_{j,m}\ket{0} = \ket{j,m}\) creates a particle in the \(j\)th
 reservoir mode at site \(m\). The \(a\) and \(b\) operators obey the
-usual bosonic commutation relations. This is equivalent to the single
-particle picture in \refcite{Ricottone2020}, as this Hamiltonian
-preserves excitations.
+usual bosonic commutation relations. This is equivalent to the
+single-particle picture in \refcite{Ricottone2020}, as this
+Hamiltonian preserves excitations.
 
-We are interested in the evolution of an initial state of a particle,
-the ``walker'', \(\ket{\psi(0)}=\ket{A,0}\) with respect to the
-parameter \(u\) and the structure of the reservoir, namely the choice
-of \(ε_{j}\) and \(g_{j}\). An observable that is sensitive to the
-bath structure \emph{and} the topological phase of the SSH bare
-model\footnote{This is understood as setting \(g_{j}=0\) and \(ω=0\)
-  leaving \(v\) and \(u\) unchanged.} is the mean displacement
+We are interested in the evolution of a particle on the laltice, the
+``walker'', that is initially localized to one \(A\) site
+\(\ket{\psi(0)}=\ket{A,0}\).  The crucial observable
 \begin{equation}
   \label{eq:59}
-  \ev{m(t)} \equiv ∑_{m}m {ρ_{\bar{A},m}(t)}
+  \ev{m(t)} \equiv ∑_{m}m {ρ_{\bar{A},m}(t)},
 \end{equation}
 where
 \(ρ_{\bar{A},m}(t) = {∑_{l\neq A} \abs{\braket{l,m}{ψ(t)}}^{2}}\) is
-the probability that the walker does reside in cell \(m\) but not the \(A\) site in
-cell \(m\) at time \(t\).
+the probability that the walker does reside in cell \(m\) but not on
+the \(A\) site at time \(t\).  The long-time average of \(\ev{m(t)}\)
+is sensitive to the topological phase of the bare SSH
+model\footnote{This is understood as setting \(g_{j}=0\) and \(ω=0\)
+  leaving \(v\) and \(u\) unchanged.}.  This phase is controlled by
+the parameter \(u\) and the time averaged value of \(\ev{m(t)}\) will
+reach a universal value indicating the topological phase, depending on
+the structure of the reservoir, namely the choice of the energies
+\(ε_{j}\) and the couplings \(g_{j}\).
 
 To simplify calculations, we exploit the translational symmetry of the
 model to express it in momentum space and remove the \(B\) sites by a
@@ -86,7 +98,8 @@ Schrieffer-Wolff transformation for large \(ω\) resulting in
   H(k) = {ω}_{A} a_{A,k}^{†}a_{A,k}+ ∑_{j} \bqty{{ω}_{j} b_{j,k}^{†}b_{j,k}
     + \pqty{\frac{v(k)}{\abs{v(0)}}η_{j} a_{A,k}^{†}b_{j,k}+ \hc}},
 \end{equation}
-where \(k=\frac{2π n}{L}\) for \(n\in[0, L-1]\), \(L\in\NN\),
+where \(k=\frac{2π n}{L}\) for \(n\in[0, L-1]\), \(L\in\NN_{>0}\) is the
+number of lattice sites,
 \(c_{l,k} = \frac{1}{\sqrt{L}}∑_{m}c_{l,m}\eu^{-\iu k m}\) and
 \begin{equation}
   \label{eq:72}
@@ -94,7 +107,7 @@ where \(k=\frac{2π n}{L}\) for \(n\in[0, L-1]\), \(L\in\NN\),
 \end{equation}
 
 
-The mean displacement can be re-expressed in terms of momentum space quantities
+The mean displacement can be re-expressed in terms of momentum-space quantities
 \begin{equation}
   \label{eq:62}
   \begin{aligned}[t]
@@ -102,11 +115,12 @@ The mean displacement can be re-expressed in terms of momentum space quantities
               t}}\dv{ϕ({k})}{k}
   \end{aligned}
 \end{equation}
-where \(ρ_{A}(k,t)=\abs{\braket{A,k}{ψ(t)}}^{2}\) with
-\(\ket{ψ(0)}=\ket{A,k=0}=a^{†}_{A,k=0}\ket{0}\).
+where
+\(ρ_{A}(k,t)=\pqty{L^{-1}-ρ_{\bar{A}}(k,t)}=\abs{\braket{A,k}{ψ(t)}}^{2}\)
+with \(\ket{ψ(0)}=\ket{A,k=0}=a^{†}_{A,k=0}\ket{0}\).
 
 The structure of the reservoir is described by the
-spectral density which we choose to take the form of a power law
+spectral density, which we choose to take the form of a power law
 \begin{equation}
   \label{eq:64}
   J(ω)
@@ -119,7 +133,7 @@ spectral density which we choose to take the form of a power law
 \end{equation}
 where \(ω_{c}\) is called the cutoff frequency and \(α\) controls how
 fast \(J(ω)\) approaches zero for \(ω\to 0\). The coupling strength
-\(g_{0}\) can be expressed by the couplings through
+\(g_{0}\) can be expressed in terms of the couplings to the bath levels
 \begin{equation}
   \label{eq:70}
   g_{0} = \sqrt{∑_{j}\abs{η_{j}}^{2}}.
@@ -136,52 +150,66 @@ For finite-size reservoirs, a simple choice for the \(ω_{j}\) and
 which recovers \cref{eq:64} in the limit \(N\to ∞\).
 
 The finite size of the reservoir will in general wash out the sharp
-phase transitions observed in \refcite{Ricottone2020}. Additionally it
+phase transitions observed in \refcite{Ricottone2020}. Additionally, it
 will lead to recurrences in the dynamics around the time
 \begin{equation}
   \label{eq:71}
   τ_{R}=\frac{2π}{Δω},
 \end{equation}
-where \(N\) is the number of reservoir modes. This means, that around
-\(τ_{R}\), the state of the system will approach initial state. As we
-are interested in reproducing the behavior of the infinite system, we
-have to work on time-scales where this effect doesn't come to play.
+as is illustrated in \cref{fig:mean_displacement_example}.
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=.8\linewidth]{plots/mean_displacement_example_simple}
+  \caption{\label{fig:mean_displacement_example} The mean displacement
+    \(\ev{m(t)}\) over time for \(g_{0}=0.2 ω_{c}\), \(α=0.1\),
+    \(u=4\), \(N=50\). The interval for the time average in
+    \cref{eq:69} used in \cref{fig:example_finite_vs_continuum} is
+    visualized by the dashed vertical lines.}
+\end{figure}
 
-On the other hand
-\(ρ_{A}(k,t)\) decays with a rate
+The mean displacement decays to a steady state
+approximately\footnote{Obtained through the golden rule using a flat,
+  continuous bath spectrum.} with a rate
 \begin{equation}
   \label{eq:1}
-  Γ \sim \frac{π g_{0}^{2}}{ω_{c}}.
+  Γ = \frac{π g_{0}^{2}}{ω_{c}}.
 \end{equation}
-It is therefore necessary to have \(1/Γ \ll τ_{R}\), which gives a
-lower bound for the number of reservoir states required at a certain
-coupling strength
+It is therefore necessary to separate the time scale of transient
+dynamics \(1/Γ\) from the time scale of recurrences \(τ_{R}\) so that
+\(1/Γ \ll τ_{R}\), which gives a lower bound for the number of
+reservoir states required given a coupling strength
 \begin{equation}
   \label{eq:73}
   N \gg \frac{ω_{c}^{2}}{2π^{2}g_{0}^{2}} .
 \end{equation}
 
-Further, the strong coupling limit where
-\(\ev{m(t)}\sim \cos[2](Ω t)\) with \(Ω=\sqrt{∑_{j}\abs{η_{j}}^{2}}\)
-should be avoided, which adds the constraint
+Further, there is a limit of strong coupling, where
+\(\ev{ρ_{A}(k, t)}\sim \cos[2](Ω t)\) with \(Ω=\sqrt{∑_{j}\abs{η_{j}}^{2}}\).
+As this limit leads to persistent oscillations rather than the
+behavior of \cref{fig:example_finite_vs_continuum} it has to be
+avoided by choosing
 \begin{equation}
   \label{eq:2}
-  g_{0}^{2} \ll ω_{c}^{2}.
+  g_{0} \ll ω_{c}.
 \end{equation}
+The balance has to be kept between the number of reservoir states
+required for the separation of time scales \(N\sim g_{0}^{-2}\) and
+avoiding the strong-coupling limit.
 
-To define the time averaged displacement for a finite reservoir, we
-have to avoid transients and revivals, yielding
+We now define the time-averaged mean displacement as
 \begin{equation}
   \label{eq:69}
   \ev{m} \equiv \frac{1}{τ_{h} - τ_{l}} ∫_{τ_{l}}^{τ_{h}}\ev{m(t)} \dd{t},
 \end{equation}
 with \(τ_{l}\) and \(τ_{h}\) chosen appropriately to avoid transient
-and recurrences, but far enough apart to provide a satisfactory
-average. A reasonable choice would be
-\(τ_{l}=0.5 τ_{R},\, τ_{h} = 0.95 τ_{R}\).
+behavior on time scales of the order of \(1/Γ\) and recurrences at
+\(τ_{R}\), but far enough apart to provide a satisfactory
+average. Here we choose \(τ_{l}=0.5 τ_{R},\, τ_{h} = 0.95 τ_{R}\), as
+is visualized in \cref{fig:mean_displacement_example}.
 
-In the continuum limit we can ignore transient effects and choose
-\(τ_{l}=0\) and take the limit of \(τ_{h}\to ∞\) obtaining
+In the continuum limit revivals won't occur, so that we can take the
+limit of \(τ_{h}\to ∞\) and set \(τ_{l}=0\) without changing the
+result obtaining
 \begin{equation}
   \label{eq:60}
   \ev{m} =  \lim_{T\to ∞} \frac{1}{T} ∫_{0}^{T}\ev{m(t)}\dd{t}.
@@ -194,49 +222,47 @@ corresponding to the topological phase of the original SSH chain
   \label{eq:63}
   \ev{m} = θ(u-1).
 \end{equation}
-It was shown in \refcite{Ricottone2020} using the Born approximation
-and taking the continuum limit for the reservoir and an infinite SSH
-chain \(L=∞\), that \(\ev{m}\) matches \cref{eq:63} precisely for
-\(α<1\) whereas it takes on non-universal values for \(α>1\). This
-behavior can also be obtained without employing the Born approximation
-and is presented in the right column of
+In \refcite{Ricottone2020}, an infinite SSH chain (\(L=∞\)) was
+studied with the Born approximation and in the continuum limit for the
+reservoir. There, it was found that \(\ev{m}\) matches \cref{eq:63}
+precisely for \(α<1\), whereas it takes on non-universal values for
+\(α>1\). This behavior can also be obtained without employing the Born
+approximation and is presented in the right column of
 \cref{fig:example_finite_vs_continuum}.
 
-If we choose \(g_{0}=0.2\implies g_{0}^{2}=0.04\), we are just about
-fulfilling \cref{eq:2}, while \cref{eq:73} evaluates to
-\(N\gtrsim 1\). The resulting \(\ev{m(t)}\) for \(N=50\) and \(α=0.1\)
-and \(u=4\) is shown in \cref{fig:mean_displacement_example}, where we
-see that the time scales are indeed well separated and \(\ev{m}\)
-approaches the value one as we would expect from the weak coupling and
-continuum limit.
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=.8\linewidth]{plots/mean_displacement_example_simple}
-  \caption{\label{fig:mean_displacement_example} The mean \(\ev{m}\)
-    displacement over time for two values of \(α\), \(u=4\), \(N=50\)
-    in relation to the recurrence time \(τ_{R}\).}
-\end{figure}
+If we choose \(ω_{c}=1\) (choice of units) and \(g_{0}=0.2 ω_{c}\), we
+avoid the strong-coupling behavior \cref{eq:2}, while the criterion
+for the separation of time scales in \cref{eq:73} becomes
+\begin{equation}
+  \label{eq:3}
+  N\gg \frac{100}{8π^{2}} \approx 1.27.
+\end{equation}
+This estimate suggests that, for this choice of coupling, we should
+expect to have a region in time of ``universal'' saturation in
+\(\ev{m(t)}\) whenever \(N\gg 1\), thus reproducing the key feature of
+the phase diagram.  The resulting \(\ev{m(t)}\) for \(N=50\),
+\(α=0.1\), and \(u=4\) is shown in
+\cref{fig:mean_displacement_example}, where we see that the time
+scales are indeed well separated and \(\ev{m}\approx 1\) as was also
+found in the continuum limit (\(N\to ∞\)) and for weak coupling.
 
-In choosing a non-vanishing \(g_{0}>0\) we have to compensate for
-level repulsion which shifts the effective energy of the \(A\) site.
-This Lamb shift can be countered by choosing a specific value of the
-\(A\) site energy
+When choosing a moderately large \(g_{0}\) and finite \(N\) we have to
+compensate for level repulsion which shifts the effective energy of
+the \(A\)-site.  This effect can be countered by choosing a specific
+value of the \(A\)-site energy
 \begin{equation}
   \label{eq:66}
-  ω_{A} = ∑_{j}\frac{\abs{η_{j}}^{2}}{ω_{j}} = \frac{1}{N} ∑_{j}
-  J(ω_{j}) \frac{ω_{c}}{ω_{j}},
+  ω_{A} = ∑_{j}\frac{\abs{η_{j}}^{2}}{ω_{j}} = ∑_{j}
+  J(ω_{j}) \frac{Δω}{ω_{j}},
 \end{equation}
-where \(ω_{A}\) is independent of \(u\) but still depends on
-\(α\). This was done to produce
-\cref{fig:mean_displacement_example,}.
-
+where \(ω_{A}\) is independent of \(u\), but still depends on
+\(α\). \Cref{fig:mean_displacement_example} was produced in this way.
 
 The full phase diagram for the finite reservoir is presented on the
-left side of \cref{fig:example_finite_vs_continuum}. While finite size
-effects wash out the sharp borders of the phase diagram in the
-continuum limit, its signature is relatively clear, especially in the
-constant \(α\) cuts above the phase diagram.
-
+left side of \cref{fig:example_finite_vs_continuum}. While finite-size
+effects wash out the sharp borders of the phase diagram, its signature
+is relatively clear, especially in the constant-\(α\) cuts above the
+phase diagram.
 
 \printbibliography{}
 \end{document}
