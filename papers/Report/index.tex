@@ -25,7 +25,6 @@ headinclude=true,footinclude=false,BCOR=0mm]{scrartcl}
 \usepackage{keyval}
 \usepackage{xparse}
 
-
 \setkeys{Gin}{width=\linewidth,totalheight=\textheight,keepaspectratio}
 \makeatletter
 \define@key{hirodims}{width}{\def\hiro@width{#1}}
@@ -40,7 +39,6 @@ headinclude=true,footinclude=false,BCOR=0mm]{scrartcl}
   \endgroup
 }
 \makeatother
-
 
 \begin{document}
 \maketitle
@@ -70,19 +68,19 @@ a two dimensional phase diagram, where one dimension is the model
 parameter of the SSH chain and the other axis is related to the bath
 structure.
 
-\Cref{sec:born-approximation} revisits the results of
+\Cref{sec:Born-approximation} revisits the results of
 \refcite{Ricottone2020} by briefly describing the solution of the
 model using a perturbative approach, but without taking the continuum
 limit. The detailed analysis of the resulting expression is postponed
 to a later point (\cref{sec:criterion-bath-size}).
 
 As the numerics indicated, that the approximation assumed in
-\cref{sec:born-approximation} is too restrictive in a setting with
+\cref{sec:Born-approximation} is too restrictive in a setting with
 finitely many bath states and finite coupling strength, an exact
 solution is used to indicate a method to counter the effects of the
 finite coupling strength in \cref{sec:exact-solution}. While
 relatively weak coupling is still required, the vanishing coupling
-that the born approximation would require is not necessary in this
+that the Born approximation would require is not necessary in this
 case.
 
 \Cref{sec:strong-coupl-limit} discusses the limit of ultra-strong
@@ -155,12 +153,15 @@ with respect to \(u\) which is in accordance with
 \label{sec:mean-displacement-1}
 
 The \emph{mean displacement} is defined as
+is the mean displacement
 \begin{equation}
-  \label{eq:38}
-  \ev{m(t)} \equiv ∑_{m}m \pqty{1-ρ_{A,m}(t)}  = ∑_{m}m \pqty{1-\abs{\braket{A,m}{ψ(t)}}^{2}}
+  \label{eq:59}
+  \ev{m(t)} \equiv ∑_{m}m {ρ_{\bar{A},m}(t)}
 \end{equation}
-where we consider the initial condition \(\ket{ψ(0)}=\ket{A,0}\) and
-define \(ρ_{A}(t)=\abs{\braket{A,m}{ψ(t)}}^{2}\) for convenience.
+where
+\(ρ_{\bar{A},m}(t) = {∑_{l\neq A} \abs{\braket{l,m}{ψ(t)}}^{2}}\) is
+the probability that the walker does not reside on the \(A\) site in
+cell \(m\) at time \(t\).
 
 As the quantity \(\ev{m(t)}\) can fluctuate in time and we will be
 interested in long-time beahavior, we additionally define
@@ -183,7 +184,7 @@ with
 \end{equation}
 
 \section{Results using the Born Approximation}
-\label{sec:born-approximation}
+\label{sec:Born-approximation}
 
 In the limit of very weak coupling we can solve for \(ρ_{A}\) in terms
 of a non-Markovian master equation by employing perturbation theory to
@@ -264,7 +265,7 @@ transition from \(0\) to \(1\) for \(α\leq 1\) which becomes washed
 out for \(α>1\).
 
 We wish to study how this limit is approached with a finite bath and
-in finite times. The born approximation requires that \(η\to 0\)
+in finite times. The Born approximation requires that \(η\to 0\)
 sufficiently fast for \(N\to ∞\) so that the resulting long timescale is
 unlikely to be resolved experimentally.
 
@@ -354,7 +355,7 @@ We are however interested in the behaviour of \(ρ_{A}(t) =
 \abs{α(t)}^{2} = ∑_{jk}α_{j}α_{k}^\ast \eu^{-\iu (ε_{j} - ε_{k})t}\)
 which has the long time average \(ρ_{A} = ∑_{j}
 \abs{α_{j}}^{2}\). Therefore we cannot simply calculate the residue at
-\(s=0\) as in \cref{sec:born-approximation}, but have to
+\(s=0\) as in \cref{sec:Born-approximation}, but have to
 calculate all \(α_{j}\) in principle.
 
 Again, perturbation theory suggests, that there will be one eigenstate
@@ -372,7 +373,7 @@ finding the root of a polynomial of potentially high degree and can in
 general only be achieved through numerics or perturbation
 theory. Further, \cref{fig:unshifted_overview} suggests that we won't
 obtain a results similar to the one found in
-\cref{sec:born-approximation}.
+\cref{sec:Born-approximation}.
 
 The solution is to demand the existence of a pole at \(s=0\)
 corresponding to \(ε_{A}=0\) and adjusting \(ω_{A}\) accordingly
@@ -412,7 +413,7 @@ giving
 
 
 It is to be stressed, that \cref{eq:8} is an exact result and exhibits
-the same behavior as the result from \cref{sec:born-approximation}, as
+the same behavior as the result from \cref{sec:Born-approximation}, as
 the values for \(U_{A}\) obtained are identical. On the other hand, we
 are interested in the case where \(U_{A}\to ∞\) where the
 compatibility with the Born approximation should be broken. One could
@@ -943,6 +944,23 @@ where \(E_{n}(z)=∫_{1}^{∞}\eu^{-zt}/t^{n}\dd{t}\) is the exponential
 integral.
 
 
+Whether to replace the integral in \cref{eq:50} by a multiplication
+depends on the number of reservoir levels and the choice of the \(ω_{i}\). When
+choosing the energies according to \cref{eq:51}, then
+\cref{fig:mean_displacement_benchmark} shows that
+we get away with multiplication.
+
+\begin{figure}[p]
+  \centering
+  \includegraphics{plots/mean_displacement_complicated_vs_simple_energy}
+  \caption{\label{fig:mean_displacement_benchmark} The mean
+    displacement for multiple reservoir sizes. The blue lines
+    correspond to choosing the energies \(ω_{j}=x_{j}=ω_{c} j/N\)
+    whereas the blue lines use \cref{eq:51}. The solid lines use
+    integration and the dashed lines use multiplication in \cref{eq:50}.}
+\end{figure}
+
+
 \section{Recipe for Obtaining the Phase Diagram}
 \label{sec:recipe-obta-phase}
 This section gives a condensed overview of how to choose the model
@@ -959,7 +977,7 @@ The simplest choice is
   \label{eq:53}
   \begin{aligned}
     x_{i} &= ω_{c}\frac{i}{N} & ω_{i} &= ω_{c} \frac{2i-1}{2N} & η_{i}^{2}
-    &= ∫_{ω_{c}\frac{i-1}{N}}^{ω_{c}\frac{i}{N}}J(ω)\dd{ω} = \frac{g_{0}^{2}}{N^{α+1}} \pqty{i^{α+1}-(i-1)^{α+1}}.
+    &= J(ω_{j}) \frac{ω_{c}}{N}
   \end{aligned}
 \end{equation}
 % \begin{equation}
@@ -1057,194 +1075,12 @@ best sharpness is obtained for \(N=104\) and \(g_{0}^{2}=0.03\).
 Using those values, we may plot the full phase diagram in \cref{fig:example_full_diag}.
 \begin{figure}[H]
   \centering
-  \includegraphics[width=\linewidth]{plots/example_full_diag}
+  \includegraphics[width=.8\linewidth]{plots/example_full_diag}
   %\includeplot[scale=.5,width=\linewidth]{example_full_diag}
   \caption{\label{fig:example_full_diag} The full phase diagram for
-    \(N=104\) bath modes and \(g_{0}^{2}=0.03\) using the windowed
+    \(N=100\) bath modes and \(g_{0}^{2}=0.03\) using the windowed
     average.}
 \end{figure}
-
-\newpage
-\section{The non-Markovian Quantum Walk for Finite Baths}
-\label{sec:summary}
-
-Herein we report how to reproduce the behavior found for non-Markovian
-quantum walk in the continuum limit with the Born approximation in
-\refcite{Ricottone2020} using a finite number of reservoir states and
-a finite coupling strength.
-
-\subsection{Model and relevant Observables}
-\label{sec:model-relev-observ}
-
-The basic model is given by~\cite{Ricottone2020}
-\begin{align}
-  \label{eq:58}
-  H &= H_{A} +H_{\bar{A}} + V\\
-  H_{A} &= ∑_{m}ω_{A} \ketbra{A,m} \\
-  H_{\bar{A}} &= Σ_{m}(ω_{A} + ω)\ketbra{B,m}+
-                   ∑_{j}\bqty{ω_{j}\ketbra{j, m} + g_{j}
-                   \pqty{\ketbra{j,m}{B,m} + \hc}}\\
-  V&=∑_{m} v\pqty{\ketbra{A,m}{B,m} + u\ketbra{A,m}{B,m+1} + \hc},
-\end{align}
-which describes an SSH chain with site energy detuning \(ω\) and extra
-``reservoir'' states \(\ket{j,k}\) in each unit cell that are coupled
-to the \(B\) sites.
-
-We are interested in the evolution of an initial state of a particle,
-the ``walker'', \(\ket{\psi(0)}=\ket{A,0}\) with respect of the
-structure of the reservoir, namely the choice of \(ω_{j}\) and
-\(g_{j}\). An observable that is sensitive to the bath structure
-\emph{and} the topological phase the SSH bare model\footnote{This is
-  understood as setting \(g_{j}=0\) and \(ω=0\) leaving \(v\) and
-  \(v\prime\) unchanged.} is the
-\begin{equation}
-  \label{eq:59}
-  \ev{m(t)} \equiv ∑_{m}m \pqty{1-ρ_{A,m}(t)}  = ∑_{m}m \pqty{1-\abs{\braket{A,m}{ψ(t)}}^{2}},
-\end{equation}
-where \(ρ_{A,m}(t)\) is the probability that the walker resides on the
-\(A\) sublattice at time \(t\).
-
-As \(\ev{m(t)}\) can exhibit persistent oscillations in general, we
-instead consider the long time average
-\begin{equation}
-  \label{eq:60}
-  \ev{m} \equiv \lim_{T\to ∞} \frac{1}{T}∫_{0}^{T}\ev{m(t)} \dd{t}
-\end{equation}
-
-To simplify calculations, we exploit the translational symmetry of the
-model to express it in momentum space and remove the \(B\) sites by a
-Schrieffer-Wolff transformation for large \(ω\) resulting in
-\(H=∫_{0}^{2π}H(k)\dd{k}/2π\) with
-\begin{equation}
-  \label{eq:61}
-  H(k) = {ω}_{A} \ketbra{A,k} + ∑_{j} \bqty{\tilde{ω}_{j} \ketbra{j, k}
-    + \pqty{\frac{v(k)}{\abs{v(0)}}η_{j}\ketbra{A,k}{j,k} + \hc}},
-\end{equation}
-where \(v(k)=v+v\prime\eu^{\iu k}=v(1+u)\eu^{\iu k}\).
-The model parameters in \cref{eq:61} are not necessarily the same as
-the ones in \cref{eq:58}. In the following we will suppress the
-tildes for simplicity.
-
-The mean displacement can be re-expressed in terms of momentum space quantities
-\begin{equation}
-  \label{eq:62}
-  \ev{m} = ∫_{0}^{2π}(1-ρ_{A}(k, t))\pdv{ϕ(k)}{k} \frac{\dd{k}}{2π}
-\end{equation}
-where \(ρ_{A}(k,t)=\abs{\braket{A,k}{ψ(k, t)}}^{2}\) with
-\(\ket{ψ(k,0)}=\ket{A,k}\). To obtain the long time average, we
-evaluate
-\begin{equation}
-  \label{eq:70}
-  \ev{m}_{∞} =  \lim_{T\to ∞} \frac{1}{T} ∫_{0}^{T}\ev{m(t)}\dd{t}.
-\end{equation}
-
-If \(ρ_{A}(k,t)\xrightarrow{t\to ∞}0\) for all \(k\), the observable
-exhibits a universal behavior corresponding to the topological phase
-of the original SSH chain
-\begin{equation}
-  \label{eq:63}
-  \ev{m} = θ(u-1).
-\end{equation}
-
-
-In the continuum limit, the structure of the reservoir is described by the
-spectral density which we choose to take the form of a power law
-\begin{equation}
-  \label{eq:64}
-  J(ω)=∑_{j}\abs{η_{j}}^{2} δ(ω-ω_{j})
-  =
-  \begin{cases}
-    \pqty{g_{0}^{2}\frac{(α+1)}{ω_{c}^{α+1}}} ω^{α} & \mathrm{for}\; 0\leq
-                                               ω\leq ω_{c}\\
-    0 & \mathrm{otherwise},
-  \end{cases}
-\end{equation}
-where \(ω_{c}\) is called the cutoff frequency.  In the discrete
-limit, a simple choice for the \(ω_{j}\) and \(η_{j}\) is
-\begin{equation}
-  \label{eq:65}
-  \begin{aligned}
-    ω_{j} &= ω_{c} \frac{2j-1}{2N} & η_{j}^{2}
-    &= ∫_{ω_{c}\frac{j-1}{N}}^{ω_{c}\frac{j}{N}}J(ω)\dd{ω} = \frac{g_{0}^{2}}{N^{α+1}} \pqty{j^{α+1}-(j-1)^{α+1}}.
-  \end{aligned}
-\end{equation}
-
-It was shown in \refcite{Ricottone2020} using the born approximation
-and taking the continuum limit, that \(\ev{m}\) matches \cref{eq:63}
-precisely for \(α<1\) whereas it takes on non-universal values for \(α>1\).
-
-\subsection{Compensation of Effects of finite Coupling and finite }
-\label{sec:finite-size-efects}
-
-For finite coupling strength level repulsion shifts the effective
-energy of the \(A\) site, so that the result obtained through the born
-approximation does not hold and we don't observer \(ρ_{A}(k, t)\to 0\)
-for \(α<1\). This effect can be countered by choosing a specific value
-of the \(A\) site energy
-\begin{equation}
-  \label{eq:66}
-  ω_{A} = ∑_{j}\frac{\abs{η_{j}}^{2}}{ω_{j}},
-\end{equation}
-where \(ω_{A}\) is independent of \(u\) but still depends on \(α\).
-
-The finite size of the reservoir will in general wash out the sharp
-phase transitions observed in \refcite{Ricottone2020}. Additionally it
-will lead to recurrences in the dynamics around the time
-\(τ_{R}=N/ω_{c}\) where \(N\) is the number of reservoir modes. On the
-other hand \(ρ_{A}(k,t)\) decays with a rate
-\(Γ \approx π g_{0}^{2} / ω_{c}\). It is therefore necessary to have
-\(1/Γ \ll τ_{R}\), which gives a lower bound for the modes required at
-a certain coupling strength. Using the exact solution for the decay
-problem in the weak coupling limit, but without employing the Born
-approximation we can derive another another rough bound connected to
-how close \(ρ_{A}\) approaches zero in the infinite time average.
-
-With these considerations in mind we can choose the parameters of the
-model and look at the behavior of \(\ev{m}\) for a specific \(u\) and
-\(α\) in \cref{fig:mean_displacement_example}.
-\begin{figure}[H]
-  \centering
-  \includegraphics{plots/mean_displacement_example}
-  \caption{\label{fig:mean_displacement_example} The mean \(\ev{m}\) displacement
-  over time in relation to the recurrence time \(τ_{R}\) and the
-  exponential decay with rate \(Γ\).}
-\end{figure}
-
-For this concrete parameter choice we find, that \(\ev{m(t)}\)
-approaches the universal value of one very close and that the decay
-and revival time scales are well separated. Because the revivals are
-not perfect, the dynamics show increasing deviations from the behavior
-before the first revival, as can be seen in the right panel of
-\cref{fig:mean_displacement_example}. Therefore, the time average of
-\(\ev{m(t)}\) should be taken over an interval of
-\(\bqty{τ_{l}, τ_{h}}=\bqty{3 / Γ, 0.95 τ_{R}}\)
-\begin{equation}
-  \label{eq:69}
-  \ev{m}_{N} = \frac{1}{τ_{h} - τ_{l}} ∫_{τ_{l}}^{τ_{h}}\ev{m(t)}.
-\end{equation}
-The lower end of the time interval is chosen so that \(\ev{m(t)}\) has
-converged satisfactory, whereas the upper end is chosen to stay well
-clear of the revivals.
-
-After this discussion, we are in a position to discuss the full phase
-diagram for the finite system in
-\cref{fig:example_finite_vs_continuum}. The finite size effects are
-clearly visible, while the \(α=1.5\) cuts bear whiteness to the fact,
-that \(g_{0}=0.2 ω_{c}\) is not strictly consistent with the weak
-coupling limit. However, this value leads to a saturation of the mean
-displacement \(\ev{m}\to 1\) for \(u>2\) and \(N=50\) while the
-behavior of the model is still far away from the ultra-strong coupling
-limit. Alternatively, the number of reservoir levels may be increased
-to achieve the same effect with weaker coupling.
-\begin{figure}[H]
-  \centering
-  \includegraphics{plots/example_finite_vs_continuum}
-  \caption{\label{fig:example_finite_vs_continuum} The full phase
-    diagram and constant-\(α\) cuts obtained through numerical
-    diagonalization and though an analytic estimate in the weak
-    coupling limit for \(g_{0}=0.2 ω_{c}\).}
-\end{figure}
-
 
 \printbibliography{}
 \printacronyms{}
