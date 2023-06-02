@@ -16,7 +16,7 @@
             cleveref multirow bbold unicode-math biblatex-phys xpatch beamerposter
             type1cm changepage lualatex-math footmisc wrapfig2 curve2e pict2e wrapfig
             appendixnumberbeamer sidecap appendix orcidlink ncctools bigfoot crop xcolor
-            acro translations tikzscale xstring;
+            acro translations tikzscale xstring pagesel;
         };
       in
       rec {
@@ -31,6 +31,7 @@
               cd papers/Report/
               mkdir -p .cache/texmf-var
               mkdir -p output/src
+              export SOURCE_DATE_EPOCH="${toString self.sourceInfo.lastModified}"
               env TEXMFHOME=.cache TEXMFVAR=.cache/texmf-var \
                  OSFONTDIR=${pkgs.tex-gyre-math.pagella}/share/fonts/opentype:${pkgs.gyre-fonts}/share/fonts:${pkgs.liberation_ttf}/share/fonts:${pkgs.lato}/share/fonts/lato:${pkgs.raleway}/share/fonts:${pkgs.lmodern}/share/fonts \
                 latexmk index.tex
@@ -45,6 +46,8 @@
         devShell = pkgs.mkShellNoCC {
           buildInputs = packages.document.buildInputs;
           shellHook = ''
+            export SOURCE_DATE_EPOCH="${toString packages.document.src.lastModified}"
+
             export OSFONTDIR=${pkgs.tex-gyre-math.pagella}/share/fonts/opentype:${pkgs.gyre-fonts}/share/fonts:${pkgs.liberation_ttf}/share/fonts:${pkgs.lato}/share/fonts/lato:${pkgs.raleway}/share/fonts:${pkgs.lmodern}/share/fonts
           '';
         };
