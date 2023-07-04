@@ -17,12 +17,14 @@ headinclude=true,footinclude=false,BCOR=0mm]{scrartcl}
 
 \begin{document}
 \maketitle
-In this report we reproduce the phase diagram obtained for an infinite
-reservoir in \refcite{Ricottone2020} using a finite number reservoir
-states and a finite coupling strength. The final result is presented
-in \cref{fig:example_finite_vs_continuum}. As we show in these notes,
-for the correct choice of coupling strength, \(N=50\) reservoir levels
-are likely not necessary. We expect to see a reasonable reproduction
+In this report we reproduce the phase diagram obtained in
+\refcite{Ricottone2020}. In \refcite{Ricottone2020} an infinite
+reservoir and vanishingly small coupling was assumed. Here, in
+contrast, we consider a finite number \(N\) reservoir states and a
+finite coupling strength. The final result is presented in
+\cref{fig:example_finite_vs_continuum} for \(N=50\) states. For the
+correct choice of coupling strength, \(N=50\) reservoir levels are
+likely not even necessary. We expect to see a reasonable reproduction
 of the phase diagram even for a more modest number of reservoir
 levels, satisfying \(N\gg 1\).
 
@@ -102,7 +104,7 @@ number of lattice sites,
 \(c_{l,k} = \frac{1}{\sqrt{L}}∑_{m}c_{l,m}\eu^{-\iu k m}\) and
 \begin{equation}
   \label{eq:72}
-  v(k)=v+v\prime\eu^{\iu k}=v(1+u)\eu^{\iu k} = \abs{v(k)}\eu^{\iu ϕ(k)}.
+  v(k)=v+v\prime\eu^{\iu k}=v\pqty{1+u\eu^{\iu k}} = \abs{v(k)}\eu^{\iu ϕ(k)}.
 \end{equation}
 
 
@@ -116,7 +118,7 @@ The mean displacement can be re-expressed in terms of momentum-space quantities
 \end{equation}
 where
 \(ρ_{A}(k,t)=\pqty{L^{-1}-ρ_{\bar{A}}(k,t)}=\abs{\braket{A,k}{ψ(t)}}^{2}\)
-with \(\ket{ψ(0)}=\ket{A,k=0}=a^{†}_{A,k=0}\ket{0}\).
+with \(\ket{ψ(0)}=\sqrt{L}^{-1}∑_{k}\ket{A,k}=\sqrt{L}^{-1}∑_{k}a^{†}_{A,k}\ket{0}\).
 
 The structure of the reservoir is described by the
 spectral density, which we choose to take the form of a power law
@@ -179,7 +181,7 @@ dynamics \(1/Γ\) from the time scale of recurrences \(τ_{R}\) so that
 reservoir states required given a coupling strength
 \begin{equation}
   \label{eq:73}
-  N \gg \frac{ω_{c}^{2}}{2π^{2}g_{0}^{2}} .
+  N \gg \frac{ω_{c}^{2}}{2π^{2}g_{0}^{2}}.
 \end{equation}
 
 Further, there exists a limit of strong coupling, where
