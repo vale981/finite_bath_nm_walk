@@ -345,8 +345,9 @@ have the form \(α(t)=∑_{i}α_{i}\eu^{-\iu ε_{i} t}\), where the
 \(ε_{i}\) are poles of \(\tilde{α}(s)\) and
 \begin{equation}
   \label{eq:6}
-  α_{i} = \iu \lim_{ε\to ε_{i}} (ε-ε_{i}) \tilde{α}(-\iu ε) =
-  \eval{\bqty{\dv{s} \frac{1}{\tilde{α}(-\iu s)}}^{-1}}_{s=ε_{i}} =
+  α_{i} = -\iu \lim_{ε\to ε_{i}} (ε-ε_{i}) \tilde{α}(-\iu ε) =
+  -\iu\eval{\bqty{\dv{s} \frac{1}{\tilde{α}(-\iu s)}}^{-1}}_{s=ε_{i}} =
+  \eval{\bqty{\dv{s} \frac{1}{\tilde{α}(s)}}^{-1}}_{s=-\iu ε_{i}} =
   \frac{α(0)}{1 + \tilde{Κ}'(-\iu ε_{i})} = \frac{α(0)}{1+U_{i}}
 \end{equation}
 are the residues (modulo \(2π\iu\)) of \(\tilde{α}(s)\).

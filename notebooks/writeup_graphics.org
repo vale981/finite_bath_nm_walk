@@ -5,10 +5,6 @@
   using Revise
   @quickactivate "discrete_walk"
 
-  # using Plots
-  # using PGFPlotsX
-  # pgfplotsx()
-
   using LinearAlgebra
   using Accessors
   using Statistics
@@ -34,7 +30,7 @@
       α = 0.5
       ω_c = 1
       N = 100
-      p = ExtendedModelParameters(v, u, 0, OhmicSpectralDensity(ω_c, J, α), N, LinearBathDiscretization, true, true, 0.)
+      p = ExtendedModelParameters(v, u, 0, OhmicSpectralDensity(ω_c, J, α), N, LinearBathDiscretization(), true, true, 0.)
 
       p, ModelParameters(p), OhmicSpectralDensity(p)
   end
@@ -485,11 +481,10 @@ We may then continue to plot
 #+begin_src jupyter-julia
   let
       params = @set full_prototype.spectral_density.J = .03
-      @reset params.N = 104
+      @reset params.N = 100
 
-      f = plot_phase_diagram(params, 8; α_limits=(0, 2), u_limits=(0,4))
-      resize!(f.scene, (500, 500))
-      resize_to_layout!(f)
+      f = Figure(resolution=(400*.8, .618 * 400*.8), fontsize=10)
+      f = plot_phase_diagram(params, 50; α_limits=(0, 2), u_limits=(0,4))
       save(plotsdir("example_full_diag.pdf"), f)
       f
   end
@@ -497,11 +492,11 @@ We may then continue to plot
 
 #+RESULTS:
 :RESULTS:
-: maximum(displacement) = 0.9983163188329705
-[[file:./.ob-jupyter/ced3715204c326cd9a0d49ffc3232619764f095d.svg]]
+: maximum(displacement) = 0.9991197105684881
+[[file:./.ob-jupyter/e200fbb2eb5cabe11a78299ce1b1f870ea479d77.svg]]
 :END:
 
-
+* Short Summary
 #+begin_src jupyter-julia
   g = .2
 #+end_src
@@ -515,6 +510,7 @@ We may then continue to plot
       @reset params.spectral_density.α = .1
       @reset params.N = 50
       @reset params.u = 4
+      @reset params.discretization = LinearBathDiscretization(integral_method=true)
 
       params = auto_shift_bath(params, 0)
       f = Figure(resolution=(400, .618 * 400), fontsize=10)
@@ -535,18 +531,88 @@ We may then continue to plot
       linkyaxes!(a, a_long)
       hideydecorations!(a_long, grid=false)
       trim!(f.layout)
-      #save(plotsdir("mean_displacement_example.pdf"), f)
+      save(plotsdir("mean_displacement_example.pdf"), f)
       f
   end
 #+end_src
 
 #+RESULTS:
-[[file:./.ob-jupyter/ea197efd572c3fd18b7f01fd4a20f8c6643a7cea.svg]]
+: 4578ce0d-b70a-4772-b74a-ea9f9329af86
+
+#+begin_src jupyter-julia
+  let
+      scale = 1
+      f = Figure(resolution=(400 * scale, .618 * 400 * scale * 3), fontsize=10)
+      for (i, N) in enumerate([5, 50, 100])
+          params = @set full_prototype.spectral_density.J = g^2
+          @reset params.spectral_density.α = .5
+          @reset params.N = N
+          @reset params.u = 4
+          τ_R = recurrence_time(params)
+
+          layout = f[i, 1] = GridLayout()
+          a = Axis(layout[1,1], xlabel=L"$ω_c t$", ylabel=L"\langle m(t)\rangle")
+
+          for (simple, integral) in Iterators.product([false, true], [false, true])
+              @reset params.discretization = LinearBathDiscretization(simple_energies=simple, integral_method=integral)
+              reduced_params = ModelParameters(params)
+              reduced_params = auto_shift_bath(reduced_params, 0)
+              l1 = lines!(a, 0..1.5τ_R, t -> mean_displacement(t, reduced_params),  label=L"$\langle m(t)\rangle$", linewidth=1, linestyle=integral ? :dash : :solid, color=simple ? Cycled(1) : Cycled(2))
+          end
+
+          Label(layout[1, 1, Top()], L"$u=%$(params.u)$, $\alpha=%$(params.spectral_density.α)$, $N=%$(params.N)$, $g_0/ω_c=%$g$", tellheight=true, padding=(10, 10, 10, 10))
+      end
+      save(plotsdir("mean_displacement_complicated_vs_simple_energy.pdf"), f)
+      f
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/70307f03d557209f9c30675558b9cafee68a31bf.svg]]
 
 #+begin_src jupyter-julia
   let
       params = @set full_prototype.spectral_density.J = g^2
       @reset params.N = 50
+      @reset params.u = 4
+      @reset params.discretization = LinearBathDiscretization(integral_method=false)
+      scale = .8
+
+      f = Figure(resolution=(400 * scale, .618 * 400 * scale * .8), fontsize=10)
+      a = Axis(f[1,1], xlabel=L"$ω_c t$", ylabel=L"\langle m(t)\rangle")
+      τ_R = recurrence_time(params)
+
+      for α in [.1]
+          @reset params.spectral_density.α = α
+          params = auto_shift_bath(params, 0)
+
+          reduced_params = ModelParameters(params)
+          #sol = WalkSolution(0, reduced_params)
+
+          lines!(a, 0..1.5τ_R, t -> mean_displacement(t, reduced_params),  label=L"α=%$α")
+          #lines!(a, 0..2τ_R, t -> a_weight(t, sol),  label=L"α=%$α")
+      end
+      #Legend(f[1,2], a)
+
+
+      times = [.5τ_R, 0.95τ_R]
+      l4 = vlines!(a, times, color="gray", linestyle=:dash, label=L"τ_R")
+      for (time, label) in zip(times, [L"τ_l=0.5 τ_R", L"τ_h=0.95 τ_R"])
+          text!(a, (time + 15, .1), text=label, fontsize=10)
+      end
+      save(plotsdir("mean_displacement_example_simple.pdf"), f)
+      f
+  end
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/b7de3ad8abe003f36d765cf164adc869a9d33478.svg]]
+
+
+#+begin_src jupyter-julia
+  let
+      params = @set full_prototype.spectral_density.J = g^2
+      @reset params.N = 10
       res = 50
 
       α_small = .1
@@ -615,7 +681,7 @@ We may then continue to plot
       end
 
       trim!(f.layout)
-      save(plotsdir("example_finite_vs_continuum.pdf"), f)
+      #save(plotsdir("example_finite_vs_continuum.pdf"), f)
       f
 
   end
@@ -623,7 +689,7 @@ We may then continue to plot
 
 #+RESULTS:
 :RESULTS:
-: maximum(displacement) = 0.9966409308131559
+: maximum(displacement) = 0.9678543112630135
 : maximum(displacement) = 1.0000000000109444
-[[file:./.ob-jupyter/768a2c69391666aa28fa56937e380a4948308a70.svg]]
+[[file:./.ob-jupyter/b9194aa87b8741c6b48912a74490594bdd8de8c5.svg]]
 :END:

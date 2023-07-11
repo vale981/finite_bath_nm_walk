@@ -50,10 +50,19 @@ import PolynomialRoots: roots
 import Accessors: @set
 
 abstract type BathDiscretization end
-abstract type LinearBathDiscretization <: BathDiscretization end
-abstract type ExponentialBathDiscretization <: BathDiscretization end
-discretization_name(::Type{LinearBathDiscretization}) = "linear"
-discretization_name(::Type{ExponentialBathDiscretization}) = "exponential"
+@kwdef struct LinearBathDiscretization <: BathDiscretization
+    integral_method::Bool = true
+    simple_energies::Bool = false
+end
+
+struct ExponentialBathDiscretization <: BathDiscretization
+end
+discretization_name(::LinearBathDiscretization) = "linear"
+discretization_name(::ExponentialBathDiscretization) = "exponential"
+use_integral_method(::ExponentialBathDiscretization) = true
+use_integral_method(params::LinearBathDiscretization) = params.integral_method
+
+
 
 """The parameters required to simulate the model, agnostic of how they
 are arrived at."""
@@ -129,7 +138,7 @@ Instead of specifying the bath spectrum and coupling directly, these values are 
     spectral_density::OhmicSpectralDensity = OhmicSpectralDensity(1, 0.01, 1)
 
     N::Integer = 10
-    discretization::Type{<:BathDiscretization} = LinearBathDiscretization
+    discretization::BathDiscretization = LinearBathDiscretization()
 
     normalize::Bool = true
 
@@ -256,11 +265,16 @@ end
 non_a_weight(t::Real, sol::WalkSolution)::Real = (1 / (2π) - abs2(sol(t)[1]))
 
 
-function discretize_bath(scheme::Type{<:BathDiscretization}, J::OhmicSpectralDensity, N::Integer, normalize::Bool=true)
+function discretize_bath(scheme::BathDiscretization, J::OhmicSpectralDensity, N::Integer, normalize::Bool=true)
     xk, ε = find_nodes_and_energies(scheme, J, N)
 
-    J_int = OhmicSpectralDensityIntegral(J)
-    g = ((J_int.(xk[2:end]) - J_int.(xk[1:end-1])))
+    g = if use_integral_method(scheme)
+        J_int = OhmicSpectralDensityIntegral(J)
+        ((J_int.(xk[2:end]) - J_int.(xk[1:end-1])))
+    else
+        dx = xk[2:end] - xk[1:end - 1]
+        J.(ε) .* dx
+    end
 
     if normalize
         g /= sum(abs.(g))
@@ -271,15 +285,19 @@ function discretize_bath(scheme::Type{<:BathDiscretization}, J::OhmicSpectralDen
 end
 discretize_bath(p::ExtendedModelParameters) = discretize_bath(p.discretization, OhmicSpectralDensity(p), p.N, p.normalize)
 
-function find_nodes_and_energies(::Type{LinearBathDiscretization}, J::OhmicSpectralDensity, N::Integer)
+function find_nodes_and_energies(discretization_params::LinearBathDiscretization, J::OhmicSpectralDensity, N::Integer)
     Δ = J.ω_c
     xk = collect(LinRange(0, Δ, N + 1))
-    ε = Δ * ((2 * collect(1:N) .- 1) / (2 * N))
+    ε = if discretization_params.simple_energies
+        xk[2:end]
+    else
+        Δ * ((2 * collect(1:N) .- 1) / (2 * N))
+    end
 
     xk, ε
 end
 
-function find_nodes_and_energies(::Type{ExponentialBathDiscretization}, J::OhmicSpectralDensity, N::Integer)
+function find_nodes_and_energies(::ExponentialBathDiscretization, J::OhmicSpectralDensity, N::Integer)
     ω_c = -J.ω_c / log(1 / (2N))
     xk = -ω_c * log.(1 .- collect(0:N) / (N))
     ε = -ω_c * log.(1 .- (2 * collect(1:N) .- 1) / (2 * N))
@@ -549,6 +567,11 @@ optimal_bath_shift(params::ExtendedModelParameters, args...; kwargs...) = optima
 function auto_shift_bath(params::ExtendedModelParameters, args...; kwargs...)
     @set params.ω_A = optimal_bath_shift(params, args...; kwargs...)
 end
+
+function auto_shift_bath(params::ModelParameters, args...; kwargs...)
+    @set params.ω_A = optimal_bath_shift(params, args...; kwargs...)
+end
+
 
 function recurrence_time(p::ModelParameters)::Real
     2π / minimum(p.ε[begin+1:end] - p.ε[begin:end-1])

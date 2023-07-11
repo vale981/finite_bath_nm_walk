@@ -212,13 +212,14 @@ function plot_phase_diagram(layout::CairoMakie.GridLayout, params::ExtendedModel
 
                 τ_end = recurrence_time(current_params)
                 if window
-                    τ = 3 / (decay_rate(current_params, 0))
+                    #τ = 3 / (decay_rate(current_params, 0))
 
-                    τ = min(τ, .5 * τ_end)
+                    τ = .5 * τ_end
                     # if τ > τ_end
                     #     @show τ_end, α, u, decay_rate(current_params, window_k),  current_params.ω_A
                     #     error("Decay doesn't take place before recurrence.")
                     # end
+                    #displacement[i, j] = analytic_time_averaged_displacement(τ, 0.95 * τ_end, current_params |> ModelParameters)
                     displacement[i, j] = analytic_time_averaged_displacement(τ, 0.95 * τ_end, current_params |> ModelParameters)
                 else
                     #displacement[i, j] = mean_displacement(recurrence_time(current_params) * 0.95, current_params |> ModelParameters)
@@ -236,7 +237,9 @@ function plot_phase_diagram(layout::CairoMakie.GridLayout, params::ExtendedModel
     # CairoMakie.vlines!(a, [1], label=false, color=:white)
     # CairoMakie.hlines!(a, [1], label=false, color=:white)
     if colorbar
-        CairoMakie.Colorbar(layout[:, end+1], heatmap, label=L"$\langle m\rangle$")
+        cbar_layout = layout[:, end+1] = GridLayout()
+        CairoMakie.Colorbar(cbar_layout[1, 1], heatmap)
+        CairoMakie.Label(cbar_layout[1, 1, Top()], text=L"$\langle m\rangle$", padding=(0,0,10,0))
     end
     #CairoMakie.colsize!(layout, 1, CairoMakie.Aspect(1, 1))
     layout, a, heatmap

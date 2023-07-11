@@ -77,8 +77,8 @@ linkcolor=blue,
 % \labelformat{table}{table~#1}
 
 %% Cleverref
-\crefname{equation}{}{}
-\creflabelformat{equation}{(#2#1#3)}
+% \crefname{equation}{}{}
+% \creflabelformat{equation}{(#2#1#3)}
 
 %% Font for headings
 \addtokomafont{disposition}{\rmfamily}
@@ -93,6 +93,9 @@ linkcolor=blue,
 \unimathsetup{math-style=TeX,bold-style=ISO}
 
 \recalctypearea
+
+% aligned oversets, must be loaded last
+\usepackage{aligned-overset}
 
 % Plots
 \usepackage{tikz}
