@@ -1,0 +1,35 @@
+:PROPERTIES:
+:ID:       c45097d2-2599-426d-82db-6ecfb5207151
+:END:
+#+title: Julia Code Project for the Non-Markovian Quantum Walk in Fiber Loops
+
+See [[file:~/Documents/org/roam/code/julia_code_project_for_the_non_markovian_quantum_walk_in_fiber_loops][project folder]].
+
+* Notebooks
+** Debugging Analytic Formulas for the NM Quantum Walk
+- [[file:notebooks/debug_analytics.org][debugging my analytic formulas]]
+
+- [[file:notebooks/debug_analytic_transmission.org][debugging my transmission forumlas]]
+  - see [[id:597326b1-de4f-4604-abd2-a099dfba701a][Input/Output Relations for the Fiber Loops]] and [[id:3d590bce-3cdc-4fae-bc24-7d98dfece56b][Calibration of
+    the Spectral Density]]
+
+
+** Development Notebooks
+- some first experiments for implementing the quantum walk are in
+  [[file:notebooks/quantum_walk_experiments.org][walk experiments]]
+
+- debugging my implementation in [[file:notebooks/debug_vs_mathieu.org][here]]
+
+** Lamb Shift Exploration for the NM Quantum Walk
+:PROPERTIES:
+:ID:       ee31859f-50cc-411a-914c-9f77d2ea909e
+:END:
+
+- numeric exploration of the lamb shift [[file:notebooks/lamb_shift.org][lamb_shift notebook]]
+
+** Plots for the NM Quantum Walk
+:PROPERTIES:
+:ID:       7e64db65-df9a-476b-bb1a-71932c234f76
+:END:
+- [[file:notebooks/writeup_graphics.org]]
+- [[file:notebooks/transmission_demo.jl][transmission plot demo in pluto.jl]]
