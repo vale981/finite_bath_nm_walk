@@ -39,15 +39,29 @@ export recurrence_time
 export minimal_N
 export decay_rate
 export analytic_time_averaged_displacement_continuum
+export Diagonalization
+export O_σγO_γσ
+export O_σγO_γn
+export O_nγO_γσ
+export O_nγO_γm
+export Ω_γ
+export Ω_n
+export ω_γ_guess
+export Κ
+export energies
+export Transmission
+export Δ
+export ψ
 
 using Parameters
-import LinearAlgebra: diagm, eigen, ⋅
+import LinearAlgebra: diagm, eigen, eigvals, ⋅
 import Cubature: hquadrature, hquadrature_v
 import Statistics: mean
 import SpecialFunctions: gamma, zeta
 import Polynomials: Polynomial, fromroots, coeffs
 import PolynomialRoots: roots
 import Accessors: @set
+import Optim
 
 abstract type BathDiscretization end
 @kwdef struct LinearBathDiscretization <: BathDiscretization
@@ -89,9 +103,17 @@ are arrived at."""
 
     """Energy of the A site"""
     ω_A::Real = 0
+
+    """The damping rates."""
+    η::Vector{<:Real} = [0, 0, 0]
+    @assert length(η) == length(ε) + 1
+
+    """The asymmetry phase for the g."""
+    ψ::Real = 0
 end
 
-
+Ω_n(p::ModelParameters) = p.ε - 1im .* p.η[2:end]
+Ω_n(p::ModelParameters, n::Integer) = p.ε[n] - 1im .* p.η[1 + n]
 
 struct OhmicSpectralDensity
     ω_c::Real
@@ -132,7 +154,7 @@ Instead of specifying the bath spectrum and coupling directly, these values are 
     """Ratio of inter to intracell hopping."""
     u::Real = 0.5
 
-    """The site energy detuning."""
+    """The B site energy detuning."""
     ω::Real = 0.1
 
     spectral_density::OhmicSpectralDensity = OhmicSpectralDensity(1, 0.01, 1)
@@ -147,12 +169,37 @@ Instead of specifying the bath spectrum and coupling directly, these values are 
     sw_approximation::Bool = false
 
     ω_A::Real = 0
+
+    """The damping rate of the small loop."""
+    η0::Real = 0
+
+    """The damping rate of the big loop."""
+    η0_bath::Real = 0
+
+    """The damping rate due to the transmission line attached to the small loop."""
+    η_coup::Real = 0
+
+    """The hybridization amplitude."""
+    δ::Real = 0
 end
+
+"""The damping asymmetry such that the damping of the big loop is ``η_B = η_0 + 2δΔ``."""
+Δ(p::ExtendedModelParameters) = (p.η0_bath - p.η0) / (2*p.δ)
+raw"""The asymmetry phase `ψ=\sin^{-1Δ1}`The asymmetry phase `ψ=\sin^{-1Δ}`."""
+ψ(params::ExtendedModelParameters) = asin(Δ(params))
+
+"""The damping rate of the A site."""
+η0_σ(params::ExtendedModelParameters) = params.η0 + η0_bath(params)
+
+"""The damping rate of the bath modes."""
+η0_bath(params::ExtendedModelParameters) = params.η0_bath
 
 function ModelParameters(p::ExtendedModelParameters)
     ε, g = discretize_bath(p)
+    η = [η0_σ(p) + p.η_coup / 2; fill(η0_bath(p) + p.η_coup, p.N)]
 
-    ModelParameters(p.v, p.u, p.ω, ε, g, p.sw_approximation, p.ω_A)
+
+    ModelParameters(p.v, p.u, p.ω, ε, g, p.sw_approximation, p.ω_A, η, ψ(p))
 end
 
 function convert(::Type{ModelParameters}, p::ExtendedModelParameters)
@@ -197,9 +244,8 @@ function hamiltonian(k::Real, params::ModelParameters)::Matrix{<:Number}
 
     if params.sw_approximation
         g = v_complex .* params.g / abs(v(0, params))
-
-        [params.ω_A g'
-            g H_bath]
+        [params.ω_A (g' .* exp(-1im * params.ψ))
+            g H_bath] - 1im .* diagm(0 => params.η)
     else
         V = [0 conj(v_complex)
             v_complex 0]
@@ -214,6 +260,28 @@ function hamiltonian(k::Real, params::ModelParameters)::Matrix{<:Number}
     end
 end
 
+
+struct Diagonalization
+    O::Matrix{<:Complex}
+    O_inv::Matrix{<:Complex}
+    ω::Vector{<:Real}
+    λ::Vector{<:Real}
+end
+
+Ω_γ(sol::Diagonalization) = sol.ω - 1im .* sol.λ
+
+
+function Diagonalization(H::Matrix{<:Complex})
+    energies, O = eigen(H)
+    Diagonalization(O, inv(O), real.(energies), -imag.(energies))
+end
+
+
+energies(params::ModelParameters, k::Real=0) = eigvals(hamiltonian(k, params))
+
+Diagonalization(k::Real, p::ExtendedModelParameters) = Diagonalization(hamiltonian(k, p))
+Diagonalization(p::ExtendedModelParameters) = Diagonalization(0, p)
+Diagonalization(p::ModelParameters) = Diagonalization(hamiltonian(0, p))
 
 """A structure holding the information for the dynamic solution of the
    quantum walk for a specific ``k``. Callable with a time parameter."""
@@ -267,6 +335,10 @@ non_a_weight(t::Real, sol::WalkSolution)::Real = (1 / (2π) - abs2(sol(t)[1]))
 
 function discretize_bath(scheme::BathDiscretization, J::OhmicSpectralDensity, N::Integer, normalize::Bool=true)
     xk, ε = find_nodes_and_energies(scheme, J, N)
+
+    if J.J == 0
+        return ε, zero(ε)
+    end
 
     g = if use_integral_method(scheme)
         J_int = OhmicSpectralDensityIntegral(J)
@@ -559,7 +631,25 @@ end
 lamb_shift(params::ExtendedModelParameters, args...) = lamb_shift(ModelParameters(params), args...)
 
 function optimal_bath_shift(params::ModelParameters, k::Real)
-    sum(abs2.(params.g) ./ params.ε) * abs2(v(k, params)) / abs2(v(0, params))
+    target(λ, params) = -imag(Κ(0, λ, params)) * abs2(v(k, params)) / abs2(v(0, params))
+    first_guess = target(params.η[1], params)
+
+    if isnan(first_guess)
+        return 0
+    end
+
+    if params.ψ == 0 && maximum(abs.(params.η)) == 0
+        first_guess
+    else
+        ω_c = maximum(params.ε)
+        function gap(ω)
+            params = @set params.ω_A = ω
+            ω_0 = real(energies(params, 0)[1])
+            abs(ω_0/params.ε[end])
+        end
+
+        (Optim.optimize(gap, first_guess * .8, first_guess * 1.2, iterations=100) |> Optim.minimizer)
+    end
 end
 
 optimal_bath_shift(params::ExtendedModelParameters, args...; kwargs...) = optimal_bath_shift(ModelParameters(params), args...; kwargs...)
@@ -602,5 +692,101 @@ function analytic_time_averaged_displacement_continuum(p::ExtendedModelParameter
     reduced_params = ModelParameters(p)
     m, _ = hquadrature(k -> dϕ(k, reduced_params) * (1 / 2π - ρ_A_continuum(k, p)), 0, π, reltol=1e-5, abstol=1e-5)
     2m
+end
+
+
+# TODO: maybe optimize
+V_σn(p::ModelParameters) = conj.(p.g) .* exp(-1im * p.ψ)
+V_σn(p::ModelParameters, n::Integer) = conj(p.g[n]) .* exp(-1im * p.ψ)
+V_nσ(p::ModelParameters) = p.g
+V_nσ(p::ModelParameters, n::Integer) = p.g[n]
+
+"""The self-energy ``Κ(-i Ω_γ)``"""
+function Κ(Ω::Complex, p::ModelParameters)
+    sum(V_σn(p) .* V_nσ(p) ./ (1im * (Ω_n(p) .- Ω)))
+end
+
+Κ(ω::Real, λ::Real, p::ModelParameters) = Κ(ω - 1im * λ, p)
+
+""""""
+function ∂Κ(Ω::Complex, p::ModelParameters)
+    sum(V_σn(p) .* V_nσ(p) ./ (Ω_n(p) .- Ω).^2)
+end
+
+O_σγO_γσ(ω::Complex, p::ModelParameters) = 1 / (1 + ∂Κ(ω, p))
+O_σγO_γn(ω::Complex, p::ModelParameters, n::Integer) = V_σn(p, n) / ((1 + ∂Κ(ω, p)) * (ω - Ω_n(p,n)))
+O_nγO_γσ(ω::Complex, p::ModelParameters, n::Integer) = V_nσ(p, n) / ((1 + ∂Κ(ω, p)) * (ω - Ω_n(p,n)))
+O_nγO_γm(ω::Complex, p::ModelParameters, n::Integer, m::Integer) = (V_nσ(p, n) * V_σn(p, m)) / ((1 + ∂Κ(ω, p)) * (ω - Ω_n(p,n)) * (ω - Ω_n(p,m)))
+
+
+function ω_γ_guess(m::Integer, p::ModelParameters)
+    ω_m =     Ω_n(p, m)
+    ω_σ = (p.ω_A - 1im * p.η[1])
+    A =  sum((V_σn(p) .* V_nσ(p))[1:end .!= m] ./ (Ω_n(p) .- ω_m)[1:end .!= m])
+    B =  sum((V_σn(p) .* V_nσ(p))[1:end .!= m] ./ ((Ω_n(p) .- ω_m)[1:end .!= m]).^2)
+
+    f_1 = (A + ω_m - (p.ω_A - 1im * p.η[1])) / (2 * (B + 1))
+
+    (f_1 + sqrt(f_1^2 + V_σn(p, m) .* V_nσ(p, m)/ (B+1)))
+
+    ω_m -(A  + ω_m - ω_σ - sqrt(4(1+B) * V_σn(p, m) .* V_nσ(p, m) + (A + ω_m - ω_σ)^2)) / (2 * (1+B))
+
+    #1im * (Κ(Ω_λ(TargetDiagonal(p))[2], p) - 1im * Ω_λ(TargetDiagonal(p))[2]) - (p.ω_A - 1im * p.η[1])
+end
+
+@with_kw struct Transmission
+    peak_positions::Vector{<:Real}
+    peak_amplitudes::Vector{<:Complex}
+    peak_widths::Vector{<:Real}
+    κ::Real = 1e-3
+    @assert length(peak_widths) == length(peak_amplitudes) == length(peak_positions)
+end
+
+function (t::Transmission)(ω::Real)
+    F = t.κ * sum(t.peak_amplitudes .* (1 ./ (1im * (t.peak_positions .- ω) .+ t.peak_widths)))
+
+    (1 - 2real(F) + abs2(F))
+end
+
+function Transmission(Ω_B::Real, κ::Real, full_params::ExtendedModelParameters, n::Integer=0)
+    params = ModelParameters(full_params)
+    trafo = Diagonalization(params)
+
+
+    ε = params.ε
+    η = params.η
+    ψ = params.ψ
+
+    if n == 0
+        N = num_bath_modes(params)
+
+        num_peaks = (N+1)^2
+        peak_amplitudes = zeros(Complex, num_peaks)
+        peak_widths = zeros(Real, num_peaks)
+        peak_positions = zeros(Real, num_peaks)
+
+        peak_amplitudes[begin:N+1] .= (trafo.O[1,:] .* trafo.O_inv[:, 1]) .* exp(1im * ψ) / (2 * cos(ψ))
+        peak_widths[begin:N+1] .= trafo.λ
+        peak_positions[begin:N+1] .= (full_params.δ - full_params.ω_A) .+ trafo.ω
+
+        for n in 1:1:N
+            rng = ((N+1)*n + 1):((N+1)*(n+1))
+            peak_amplitudes[rng]  .= (trafo.O[n + 1, :] .* trafo.O_inv[:, n + 1])
+            peak_widths[rng] .= trafo.λ
+            peak_positions[rng] .= n * Ω_B - ε[n] .+ trafo.ω
+        end
+
+        Transmission(peak_positions, peak_amplitudes, peak_widths, κ)
+
+    elseif n > 0
+
+        N = num_bath_modes(params)
+        num_peaks = (N+1)
+
+        peak_positions = [fill(n * Ω_B - ε[n], num_peaks) .+ trafo.ω; (full_params.δ - full_params.ω_A) .+ trafo.ω]
+        peak_widths = [trafo.λ; trafo.λ]
+        peak_amplitudes = [(trafo.O[1, :] .* trafo.O_inv[:, n + 1]) ./ sqrt(2); (trafo.O[n + 1, :] .* trafo.O_inv[:, 1]) .* exp(-1im * ψ) / (sqrt(2) * cos(ψ))]
+        Transmission(peak_positions, peak_amplitudes, peak_widths, κ)
+    end
 end
 end
