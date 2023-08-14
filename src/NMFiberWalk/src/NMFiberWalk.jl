@@ -1,4 +1,4 @@
-module WalkModel
+module NMFiberWalk
 """An implementation of the non-markovian quantum walk in k-space with a discrete bath"""
 
 export ModelParameters
@@ -17,8 +17,6 @@ export construct_residue_poly
 export residues_poly
 export OhmicSpectralDensity
 export OhmicSpectralDensityIntegral
-export linear_energy_distribution
-export exponential_energy_distribution
 export a_weight
 export non_a_weight
 export mean_displacement
@@ -27,7 +25,7 @@ export integrand_diagonalization
 export integrand_residue
 export time_scale
 export num_bath_modes
-export Discretization
+export BathDiscretization
 export LinearBathDiscretization
 export ExponentialBathDiscretization
 export discretization_name
@@ -58,8 +56,6 @@ import LinearAlgebra: diagm, eigen, eigvals, ⋅
 import Cubature: hquadrature, hquadrature_v
 import Statistics: mean
 import SpecialFunctions: gamma, zeta
-import Polynomials: Polynomial, fromroots, coeffs
-import PolynomialRoots: roots
 import Accessors: @set
 import Optim
 
@@ -789,4 +785,4 @@ function Transmission(Ω_B::Real, κ::Real, full_params::ExtendedModelParameters
         Transmission(peak_positions, peak_amplitudes, peak_widths, κ)
     end
 end
-end
+end # module NMFiberWalk

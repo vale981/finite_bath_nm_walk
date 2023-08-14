@@ -2,7 +2,7 @@
 
 julia_version = "1.9.2"
 manifest_format = "2.0"
-project_hash = "29073baf6801cacf71c63a9a33729c493c68f807"
+project_hash = "e1977f8a1a9d3a8d9f40c4ecd6679b1b404755d3"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "f5c25e8a5b29b5e941b7408bc8cc79fea4d9ef9a"
@@ -1411,6 +1411,11 @@ deps = ["Distances", "LineSearches", "LinearAlgebra", "NLSolversBase", "Printf",
 git-tree-sha1 = "019f12e9a1a7880459d0173c182e6a99365d7ac1"
 uuid = "2774e3e8-f4cf-5e23-947b-6d7e65073b56"
 version = "4.5.1"
+
+[[deps.NMFiberWalk]]
+path = "src/NMFiberWalk"
+uuid = "f0040c97-6f09-49c8-bc69-154155994ea3"
+version = "0.1.0"
 
 [[deps.NaNMath]]
 deps = ["OpenLibm_jll"]
