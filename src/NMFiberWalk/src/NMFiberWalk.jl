@@ -1,12 +1,20 @@
 module NMFiberWalk
 """An implementation of the non-markovian quantum walk in k-space with a discrete bath"""
 
-export ModelParameters
-export ExtendedModelParameters
+
+###############################################################################
+#                                   Exports                                   #
+###############################################################################
+
+# basic parameter types
+export ModelParameters, ExtendedModelParameters
 export v
+
+# dynamics
 export hamiltonian
-export solution
 export WalkSolution
+export solution
+
 export Σ_A
 export ρ_A
 export ρ_A_mean
