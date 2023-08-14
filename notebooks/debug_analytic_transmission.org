@@ -1,0 +1,315 @@
+#+property: header-args :session debug_analytics :kernel julia-1.9 :pandoc yes :async yes
+
+
+#+begin_src jupyter-julia
+  using DrWatson
+  @quickactivate "discrete_walk"
+  using Revise
+  using LinearAlgebra
+  using Accessors
+  using Statistics
+  using SpecialFunctions
+  using LaTeXStrings
+  #using CairoMakie
+  using Latexify
+  #CairoMakie.activate!(type = "svg")
+
+  Revise.includet(srcdir("WalkModel.jl"))
+  using .WalkModel
+  Revise.includet(srcdir("Utilities.jl"))
+  using .Utilities
+#+end_src
+
+#+RESULTS:
+
+#+begin_src jupyter-julia
+  η_coup = .001
+  (full_prototype, prototype, spectral_density) = let
+      v = 1
+      u = 1
+      α = 0
+      ω_c = .1
+      N = 1
+      J = (.2  * ω_c)^2
+
+      η0 = .007/2 * 1
+      η0_bath = .007/2 * 1
+      δ = 1/5
+
+
+      p = auto_shift_bath(ExtendedModelParameters(v, u, 0, OhmicSpectralDensity(ω_c, J, α), N, LinearBathDiscretization(), true, true, 0., η0, η0_bath, η_coup, δ), 0)
+
+      p, ModelParameters(p), OhmicSpectralDensity(p)
+  end
+
+  prototype
+#+end_src
+
+#+RESULTS:
+#+begin_example
+  ModelParameters
+    v: Int64 1
+    u: Int64 1
+    ω: Int64 0
+    ε: Array{Float64}((1,)) [0.05]
+    g: Array{Float64}((1,)) [0.020000000000000004]
+    sw_approximation: Bool true
+    ω_A: Float64 0.007978638288607794
+    η: Array{Float64}((2,)) [0.0075, 0.0045000000000000005]
+    ψ: Float64 0.0
+#+end_example
+
+
+#+begin_src jupyter-julia
+  H = hamiltonian(0, prototype)
+  latexify(round.(H, sigdigits=2))
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+\[\left[
+\begin{array}{cc}
+0.008-0.0075\mathit{i} & 0.02+0.0\mathit{i} \\
+0.02+0.0\mathit{i} & 0.05-0.0045\mathit{i} \\
+\end{array}
+\right]\]
+:END:
+
+#+begin_src jupyter-julia
+  trav = Diagonalization(H)
+
+  trav.ω
+
+#+end_src
+
+#+RESULTS:
+: 3-element Vector{Float64}:
+:  -1.0181464287113695e-11
+:   0.03247159495338322
+:   0.07813030685988208
+
+
+#+begin_src jupyter-julia
+  sum(O_σγO_γσ.(Ω_γ(trav), Ref(prototype)) -  trav.O[1,:] .* trav.O_inv[:,1])
+#+end_src
+
+#+RESULTS:
+: 2.0886070650760757e-15 - 1.5959455978986625e-16im
+
+
+#+begin_src jupyter-julia
+  O_σγO_γn(Ω_γ(trav)[1], prototype, 1) -  trav.O[1,1] .* trav.O_inv[1, 2]
+#+end_src
+
+#+RESULTS:
+: -3.3306690738754696e-16 + 1.249000902703301e-16im
+
+#+begin_src jupyter-julia
+sum(O_σγO_γn.(Ω_γ(trav), Ref(prototype), 1) -  trav.O[1,:] .* trav.O_inv[:, 2])
+#+end_src
+
+#+RESULTS:
+: 1.0599160438218291e-15 + 9.562663161322149e-17im
+
+
+#+begin_src jupyter-julia
+sum(O_nγO_γσ.(Ω_γ(trav), Ref(prototype), 1) -  trav.O[2,:] .* trav.O_inv[:, 1])
+#+end_src
+
+#+RESULTS:
+: 1.3340023530261647e-15 + 7.28583859910259e-17im
+
+#+begin_src jupyter-julia
+sum(O_nγO_γm.(Ω_γ(trav), Ref(prototype), 2, 2) -  trav.O[:, 1+2] .* trav.O_inv[1+2, :])
+#+end_src
+
+#+RESULTS:
+: -5.689893001203927e-16 - 2.3852447794681098e-17im
+
+#+begin_src jupyter-julia
+O_σγO_γσ.(Ω_γ(trav), Ref(prototype))
+#+end_src
+
+#+RESULTS:
+: 3-element Vector{ComplexF64}:
+:   0.7404650072033285 + 0.03184729937703077im
+:   0.2130541317183236 - 0.027891648378426292im
+:  0.04648086107834987 - 0.00395565099860464im
+
+#+begin_src jupyter-julia
+Vector(ω_γ_guess.(1:1:full_prototype.N, Ref(prototype)))
+#+end_src
+
+#+RESULTS:
+: 2-element Vector{ComplexF64}:
+:  0.032493366284428185 - 0.005150018759145218im
+:   0.07812962775977897 - 0.004639802705795115im
+
+#+begin_src jupyter-julia
+  abs.(Vector(ω_γ_guess.(1:1:full_prototype.N, Ref(prototype))) - (trav.ω - 1im*trav.λ)[2:end] ) ./ abs.(Vector(ω_γ_guess.(1:1:full_prototype.N, Ref(prototype))))
+#+end_src
+
+#+RESULTS:
+: 2-element Vector{Float64}:
+:  0.0006969143808982944
+:  8.8058986670431e-6
+
+#+begin_src jupyter-julia
+  real.(Ω_γ(trav))[2:end] .- prototype.ε
+#+end_src
+
+#+RESULTS:
+: 2-element Vector{Float64}:
+:  0.007471594953383218
+:  0.0031303068598820677
+
+#+begin_src jupyter-julia
+Κ(0, 0, prototype)
+#+end_src
+
+#+RESULTS:
+: 0.0015542342800324111 - 0.010406035624200255im
+
+
+
+
+#+begin_src jupyter-python
+  using Plots
+  trans = Transmission(1, η_coup, full_prototype, 1)
+  @show real(trans.peak_amplitudes[1])/real(trans.peak_amplitudes[end])
+  plot(0:.001:full_prototype.N+1, x-> trans(x), ylabel=L"I/I_0", xlabel=L"ω_L-ω_s", tickcolor="black", lw=2)
+  xticks!([full_prototype.δ - prototype.ω_A; collect(1:1:full_prototype.N) .- prototype.ε; trans.peak_positions], [L"δ-ε_A"; [L"%$n Ω_B-ε_%$n" for n in 1:1:full_prototype.N]])
+  vline!([full_prototype.δ - prototype.ω_A; collect(1:1:full_prototype.N) .- prototype.ε],legend=false, linestyle=:dash, color=:black)
+  #plot(x->1-full_prototype.spectral_density(x))
+  #hline!([(1-η_coup/(prototype.ω_A - prototype.ε[2])^2 * prototype.g[2]^2/prototype.η[3])])
+  #plot(x-> trans(x), .9, 1.1)
+
+  xlims!(0.15,.32)
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+: real(trans.peak_amplitudes[1]) / real(trans.peak_amplitudes[end]) = -33.712355870198145
+[[file:./.ob-jupyter/ec0e48c7017da767324b01a564b6608fc01b56ca.svg]]
+:END:
+
+#+begin_src jupyter-julia
+  xlims!(1-0.05,1+.15)
+#+end_src
+
+#+RESULTS:
+[[file:./.ob-jupyter/4060c408318be10aeabd1491ef2bf999059ce17d.svg]]
+
+#+begin_src jupyter-julia
+  trans = Transmission(1, η_coup, full_prototype, 1)
+  p1 = trans.peak_amplitudes[7]
+  trans = Transmission(1, η_coup, full_prototype, 2)
+  p2 = trans.peak_amplitudes[7]
+
+
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+# [goto error]
+: BoundsError: attempt to access 6-element Vector{ComplexF64} at index [7]
+:
+: Stacktrace:
+:  [1] getindex(A::Vector{ComplexF64}, i1::Int64)
+:    @ Base ./essentials.jl:13
+:  [2] top-level scope
+:    @ In[372]:2
+:END:
+
+#+begin_src jupyter-julia
+p1/p2
+#+end_src
+
+#+RESULTS:
+: 1.207936702891536 - 0.6104389666977239im
+
+#+begin_src jupyter-julia
+prototype.g[1] * (Ω_γ(trav)[1] - Ω_n(prototype, 2)) / (prototype.g[2] * (Ω_γ(trav)[1] - Ω_n(prototype, 1)))
+#+end_src
+
+#+RESULTS:
+: 2.9843909386900767 - 0.17599567667574084im
+
+#+begin_src jupyter-julia
+  (1-trans(full_prototype.δ - prototype.ω_A + trav.ω[1]))/2
+#+end_src
+
+#+RESULTS:
+: -0.04388323052800902
+
+#+begin_src jupyter-julia
+  η_coup/(2* (prototype.η[1])) * (1 - prototype.η[2]*prototype.g[1]^2/((prototype.ε[1]^2 + prototype.η[2]^2) * prototype.η[1]^2))
+#+end_src
+
+#+RESULTS:
+: -1.5864393645873704
+
+#+begin_src jupyter-julia
+ prot(J) = @parametrize full_prototype J
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+# [goto error]
+: LoadError: UndefVarError: `@parametrize` not defined
+: in expression starting at In[377]:1
+:END:
+
+#+begin_src jupyter-python
+  trav.λ - prototype.η
+#+end_src
+
+#+RESULTS:
+: 3-element Vector{Float64}:
+:  -0.0007827494406974847
+:   0.0006428290974212049
+:   0.00013992034327628237
+
+
+#+begin_src jupyter-julia
+  trans = Transmission(1, η_coup, full_prototype, 9)
+  @show trans.peak_amplitudes
+  @show angle.(trans.peak_amplitudes) .|> abs |> maximum
+  @show (trans.peak_amplitudes .|> angle) ./ π .* 180
+  plot(x-> trans(x), .9+8, 1.1+8)
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+# [goto error]
+: BoundsError: attempt to access 2-element Vector{Float64} at index [9]
+:
+: Stacktrace:
+:  [1] getindex(A::Vector{Float64}, i1::Int64)
+:    @ Base ./essentials.jl:13
+:  [2] Transmission(Ω_B::Int64, κ::Float64, full_params::ExtendedModelParameters, n::Int64)
+:    @ Main.WalkModel ~/Documents/org/roam/data/c4/5097d2-2599-426d-82db-6ecfb5207151/src/WalkModel.jl:786
+:  [3] top-level scope
+:    @ In[379]:1
+:END:
+
+
+#+begin_src jupyter-julia
+  trans = Transmission(1, η_coup, full_prototype, -9)
+  @show angle.(trans.peak_amplitudes) .|> abs |> maximum
+  @show trans.peak_amplitudes
+  @show trans(trans.peak_positions[end]) / trans(trans.peak_positions[1]), prototype.η[end]
+  plot(x-> trans(x), .15, .3)
+#+end_src
+
+#+RESULTS:
+:RESULTS:
+# [goto error]
+: type Nothing has no field peak_amplitudes
+:
+: Stacktrace:
+:  [1] getproperty(x::Nothing, f::Symbol)
+:    @ Base ./Base.jl:37
+:  [2] top-level scope
+:    @ show.jl:1128
+:END:
