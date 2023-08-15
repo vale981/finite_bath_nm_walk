@@ -8,3 +8,7 @@ makedocs(
         "Home" => "index.md"
     ]
 )
+
+deploydocs(;
+    repo="github.com/vale981/finite_bath_nm_walk"
+)

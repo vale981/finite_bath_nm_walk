@@ -4,4 +4,5 @@ non-markovian quantum walk in fibre loops.
 ```@autodocs
 Modules = [NMFibreWalk, NMFibreWalk.BathDiscretizations]
 Order   = [:module, :type, :function]
+Private = false
 ```
