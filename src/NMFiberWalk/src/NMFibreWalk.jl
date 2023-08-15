@@ -7,14 +7,22 @@ module NMFibreWalk
 
 # basic parameter types
 export ModelParameters,
-    ExtendedModelParameters, ℰ, num_bath_modes, v, ϕ, dϕ, Δ, ψ, η0_A, η0_bath
+    ExtendedModelParameters, ℰ, num_bath_modes, v, ϕ, dϕ, Δ, ψ, η0_A, η0_bath, V_An, V_nA
 
 # dynamics
 export hamiltonian
 export Diagonalization, Ω, ω, λ, eigenmatrix, inverse_eigenmatrix
+export WalkSolution, ρ_A, ρ_A_mean, ρ_A_continuum, time_averaged_displacement, time_averaged_displacement_continuum
 
-export WalkSolution
+# Transmission
+export Transmission, AnalyticPeakAmplitudes
 
+# misc
+export minimal_N, recurrence_time, decay_rate
+
+###############################################################################
+#                                   Imports                                   #
+###############################################################################
 
 using Parameters
 import LinearAlgebra: diagm, eigen, eigvals, ⋅
@@ -28,19 +36,17 @@ using DocStringExtensions
 include("NMFibreWalk/BathDiscretizations.jl")
 using .BathDiscretizations
 
-@template (FUNCTIONS, METHODS, MACROS) =
-    """
-    $(SIGNATURES)
-    $(DOCSTRING)
-    $(METHODLIST)
-    """
+@template (FUNCTIONS, METHODS, MACROS) = """
+                                         $(SIGNATURES)
+                                         $(DOCSTRING)
+                                         $(METHODLIST)
+                                         """
 
-@template STRUCTS =
-    """
-    $(TYPEDEF)
-    $(DOCSTRING)
-    $(TYPEDFIELDS)
-    """
+@template STRUCTS = """
+                    $(TYPEDEF)
+                    $(DOCSTRING)
+                    $(TYPEDFIELDS)
+                    """
 
 
 ###############################################################################
@@ -290,7 +296,7 @@ struct WalkSolution
     params::ModelParameters
 end
 
-function WalkSolution(k::Real, params::ModelParameters, m_0::Integer = 0)
+function WalkSolution(k::Real, params::ModelParameters, m_0::Integer=0)
     diag = Diagonalization(k, params)
     ψ_0 = [exp(-1im * k * m_0); 0; zeros(num_bath_modes(params))]
 
@@ -302,7 +308,7 @@ function WalkSolution(k::Real, params::ModelParameters, m_0::Integer = 0)
     WalkSolution(coefficients, Ω(diag), params)
 end
 
-WalkSolution(k::Real, params::ExtendedModelParameters, m_0::Integer = 0) =
+WalkSolution(k::Real, params::ExtendedModelParameters, m_0::Integer=0) =
     WalkSolution(k, params |> ModelParameters, m_0)
 
 """
@@ -317,7 +323,7 @@ end
 """The ``\rho_{\bar{A}}(k, t)`` at time ``t`` for the specific solution `sol`."""
 ρ_A(t::Real, sol::WalkSolution)::Real =
     sol.vectors[1, :] ⋅ (exp.(-1im * sol.energies * t)) |> abs2
-function ρ_A(p::ExtendedModelParameters, k::Real = 0)
+function ρ_A(p::ExtendedModelParameters, k::Real=0)
     sol = WalkSolution(k, p |> ModelParameters)
     return t -> ρ_A(t, sol)
 end
@@ -332,7 +338,7 @@ raw"""
 The mean displacement ``\langle m(t)\rangle`` at time `t`. Optionally
 the initial position `m_0` can be specified.
 """
-function mean_displacement(t::Real, params::ModelParameters, m_0::Integer = 0)
+function mean_displacement(t::Real, params::ModelParameters, m_0::Integer=0)
     function integrand(ks, v)
         Threads.@threads for i = 1:length(ks)
             k = ks[i]
@@ -341,7 +347,7 @@ function mean_displacement(t::Real, params::ModelParameters, m_0::Integer = 0)
         end
     end
 
-    m, _ = hquadrature_v(integrand, 0, π, reltol = 1e-3, abstol = 1e-3)
+    m, _ = hquadrature_v(integrand, 0, π, reltol=1e-3, abstol=1e-3)
     2m
 end
 
@@ -429,7 +435,7 @@ function time_averaged_displacement(params::ModelParameters, times...)
         sol = WalkSolution(k, params)
         dϕ(k, params) * (1 / 2π - ρ_A_mean(sol, times...))
     end
-    m, _ = hquadrature(integrand, 0, π, reltol = 1e-5, abstol = 1e-5)
+    m, _ = hquadrature(integrand, 0, π, reltol=1e-5, abstol=1e-5)
     2m
 end
 
@@ -440,7 +446,7 @@ The value of ``ϵ_A`` that compensates the lamb shift. If there is no
 non-Hermiticity, an exact formula is utilized. Otherwise the result is
 refined with numerics.
 """
-function optimal_bath_shift(params::ModelParameters, k::Real = 0)
+function optimal_bath_shift(params::ModelParameters, k::Real=0)
     target(λ, params) = -imag(Κ(0, λ, params)) * abs2(v(k, params)) / abs2(v(0, params))
     first_guess = target(params.η[1], params)
 
@@ -459,7 +465,7 @@ function optimal_bath_shift(params::ModelParameters, k::Real = 0)
         end
 
         (
-            Optim.optimize(gap, first_guess * 0.8, first_guess * 1.2, iterations = 100) |>
+            Optim.optimize(gap, first_guess * 0.8, first_guess * 1.2, iterations=100) |>
             Optim.minimizer
         )
     end
@@ -519,7 +525,7 @@ minimal_N(ρ_A::Real, params::ExtendedModelParameters) =
 
 The approximate decay rate of `ρ_A`.
 """
-decay_rate(params::ExtendedModelParameters, k::Real = 0) =
+decay_rate(params::ExtendedModelParameters, k::Real=0) =
     π * params.spectral_density.J / params.spectral_density.ω_c * abs2(v(k, params)) /
     abs2(v(0, params))
 
@@ -555,8 +561,8 @@ function time_averaged_displacement_continuum(p::ExtendedModelParameters)
         k -> dϕ(k, reduced_params) * (1 / 2π - ρ_A_continuum(k, p)),
         0,
         π,
-        reltol = 1e-5,
-        abstol = 1e-5,
+        reltol=1e-5,
+        abstol=1e-5,
     )
     2m
 end
@@ -668,7 +674,7 @@ frequency ``ω^0_m-ω^0_n`` from the free spectral range of the big loop
 function Transmission(
     Ω_B::Real,
     full_params::ExtendedModelParameters,
-    n::Integer = 0,
+    n::Integer=0,
 )
     params = ModelParameters(full_params)
     trafo = Diagonalization(params)
