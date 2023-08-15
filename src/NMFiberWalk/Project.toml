@@ -1,4 +1,4 @@
-name = "NMFiberWalk"
+name = "NMFibreWalk"
 uuid = "f0040c97-6f09-49c8-bc69-154155994ea3"
 authors = ["Valentin Boettcher <hiro@protagon.space>"]
 version = "0.1.0"
@@ -6,6 +6,7 @@ version = "0.1.0"
 [deps]
 Accessors = "7d9f7c33-5ae7-4f3b-8dc6-eff91059b697"
 Cubature = "667455a9-e2ce-5579-9412-b964f529a492"
+DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Optim = "429524aa-4258-5aef-a3af-852621145aeb"
 Parameters = "d96e819e-fc66-5662-9728-84c9c7592b0a"
